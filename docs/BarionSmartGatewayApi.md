@@ -504,7 +504,8 @@ Name | Type | Description  | Notes
 
 Create a new payment
 
-This endpoint is used to create a new payment in the Barion system. If 3DS-related properties are provided, the chance of avoiding the challenge flow is increased. If not, the payer may have a higher chance of getting a challenge during payment. 
+This endpoint is used to create a new payment in the Barion system. If 3DS-related properties are provided, the chance of avoiding the challenge flow is increased. If not, the payer may have a higher chance of getting a challenge during payment.
+
 
 ### Example
 
@@ -586,7 +587,8 @@ Name | Type | Description  | Notes
 
 Create a new payment
 
-This endpoint is used to create a new payment in the Barion system. If 3DS-related properties are provided, the chance of avoiding the challenge flow is increased. If not, the payer may have a higher chance of getting a challenge during payment. 
+This endpoint is used to create a new payment in the Barion system. If 3DS-related properties are provided, the chance of avoiding the challenge flow is increased. If not, the payer may have a higher chance of getting a challenge during payment.
+
 
 ### Example
 

@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**currency** | [**Currency**](Currency.md) | Required. ISO 4217 currency code of the bank transfer. Barion does not perform currency conversion; ensure compatibility with recipient bank.  | 
+**currency** | **str** | The currency of the payment. Must be supplied in ISO 4217 format. This affects all transactions included in the payment; it is not possible to define multiple transactions in different currencies. | 
 **amount** | **float** | Total amount to withdraw, excluding fees. | 
 **comment** | **str** | Comment associated with the bank transfer. | [optional] 
 **bank_account** | [**BankAccountDetails**](BankAccountDetails.md) | Details of the recipient&#39;s bank account. | 

@@ -7,7 +7,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **bank_card** | [**BankCard**](BankCard.md) |  | [optional] 
 **authorization_code** | **str** | The authorization code received by the card processing system when executing the payment. If authorization was not successful, this is empty.  | [optional] 
-**process_result** | [**BankCardProcessResult**](BankCardProcessResult.md) |  | [optional] 
+**process_result** | **str** |  | [optional] 
 
 ## Example
 

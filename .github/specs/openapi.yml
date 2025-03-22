@@ -1,0 +1,3340 @@
+openapi: 3.1.0
+info:
+  title: Barion API
+  version: '0.1.1'
+  x-logo:
+    url: https://docs.barion.com/images/b/bd/Barion_official_logo.png
+  description: >-
+    Integrate with ease and get unbeatable fees and data that helps you grow
+    your business.
+  termsOfService: https://www.barion.com/en/general-terms/
+paths:
+  /v2/Payment/Start:
+    post:
+      summary: Create a new payment
+      operationId: paymentStartV2
+      description: |
+        This endpoint is used to create a new payment in the Barion system. If 3DS-related properties are provided, the chance of avoiding the challenge flow is increased. If not, the payer may have a higher chance of getting a challenge during payment.
+      security:
+        - PosKeyAuth: []
+      tags:
+        - Barion Smart Gateway
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentStartRequest'
+      responses:
+        '200':
+          description: Payment successfully created.
+          content:
+            application/json:
+              schema:
+                title: PaymentStartResponseWithErrorMessages
+                allOf:
+                  - $ref: '#/components/schemas/PaymentStartResponse'
+                  - $ref: '#/components/schemas/Errors'
+        '400':
+          description: Invalid input, object invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Unauthorized. Invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+
+  /v3/Payment/StartPaymentWithGoogleToken:
+    post:
+      summary: Create a new payment
+      operationId: paymentStartWithGoogleTokenV3
+      description: |
+        This endpoint is used to create a new payment in the Barion system. If 3DS-related properties are provided, the chance of avoiding the challenge flow is increased. If not, the payer may have a higher chance of getting a challenge during payment.
+      security:
+        - PosKeyAuth: []
+      tags:
+        - Barion Smart Gateway
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: PaymentStartRequestWithGoogleToken
+              allOf:
+                - $ref: '#/components/schemas/StartPaymentWithGoogleToken'
+                - $ref: '#/components/schemas/PaymentStartRequest'
+      responses:
+        '200':
+          description: Payment successfully created.
+          content:
+            application/json:
+              schema:
+                title: PaymentStartResponseWithGoogleTokenAndErrorMessages
+                allOf:
+                  - $ref: '#/components/schemas/StartPaymentWithGoogleTokenResponse'
+                  - $ref: '#/components/schemas/Errors'
+        '400':
+          description: Invalid input, object invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Unauthorized. Invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+
+  /v2/Payment/GetPaymentState:
+    get:
+      summary: Get Payment State
+      operationId: getPaymentStateV2
+      security:
+        - PosKeyAuth: []
+      tags:
+        - Barion Smart Gateway
+      parameters:
+        - name: PaymentId
+          in: query
+          required: true
+          description: The identifier of the payment in the Barion system.
+          example: 123e4567-e89b-12d3-a456-426614174001
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response returning payment state details
+          content:
+            application/json:
+              schema:
+                title: GetPaymentStateResponseWithErrorMessages
+                allOf:
+                  - $ref: '#/components/schemas/GetPaymentStateResponse'
+                  - $ref: '#/components/schemas/Errors'
+        '400':
+          description: Invalid input, object invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Unauthorized. Invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '429':
+          description: >-
+            Too many request
+            
+            To prevent potential disruptions in our service caused by the abuse of the [/v4/Payment/<PaymentId>/PaymentState](https://docs.barion.com/Payment-PaymentState-v4) API endpoint, we have introduced a rate-limiting feature to throttle excessive requests. **Generally, you should rely on the callback mechanism whenever possible unless you have a specific reason not to**, but if you want to manually get the details of a payment, here are a couple of things to bear in mind:
+
+            - Make sure you do not send continuous requests for the same payment even if you need to get its current state manually without waiting for the callback to happen
+            - Do not keep requesting for an indefinite time, even if your requests are throttled (e.g. if a problem occurs during the payment process, and the callback never happens, you shouldn't keep polling the API indefinitely) In this case the frequency is not the problem, but as time passes these orphan requests can cause a great load together
+            
+            To avoid these situations, the following throttling logic is implemented on our API:
+
+             - During a 5 seconds window we only accept the first 2 [/v4/Payment/<PaymentId>/PaymentState](https://docs.barion.com/Payment-PaymentState-v4) requests with the same payment ID. This means that if you submit two requests less than 5 seconds apart, subsequent requests will be denied until 5 seconds pass after the initial successful request. These requests will return with an HTTP 429 "Too many requests" error.
+             - We keep track of requests, and if requests with the same payment ID reach a certain limit during a specific timeframe, all further requests will return HTTP 429. The exact timeframe and limits are not disclosed to the public.
+            
+            To reinforce the points above, we recommend using the callback mechanism described above, and calling the [/v4/Payment/<PaymentId>/PaymentState](https://docs.barion.com/Payment-PaymentState-v4) API endpoint only when there's a reason to do so.
+
+
+  /v4/Payment/{PaymentId}/PaymentState:
+    get:
+      summary: Get the state of a payment
+      description: Retrieves the state of a payment from the Barion system.
+      operationId: getPaymentStateV4
+      security:
+        - PosKeyAuth: []
+      tags:
+        - Barion Smart Gateway
+      parameters:
+        - name: PaymentId
+          in: path
+          required: true
+          description: The identifier of the payment in the Barion system.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                title: PaymentStateResponseWithErrorMessages
+                allOf:
+                  - $ref: '#/components/schemas/PaymentStateResponse'
+                  - $ref: '#/components/schemas/Errors'
+        '400':
+          description: Bad request. Invalid input parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Unauthorized. Invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '429':
+          description: >-
+            Too many request
+            
+            To prevent potential disruptions in our service caused by the abuse of the [/v4/Payment/<PaymentId>/PaymentState](https://docs.barion.com/Payment-PaymentState-v4) API endpoint, we have introduced a rate-limiting feature to throttle excessive requests. **Generally, you should rely on the callback mechanism whenever possible unless you have a specific reason not to**, but if you want to manually get the details of a payment, here are a couple of things to bear in mind:
+
+            - Make sure you do not send continuous requests for the same payment even if you need to get its current state manually without waiting for the callback to happen
+            - Do not keep requesting for an indefinite time, even if your requests are throttled (e.g. if a problem occurs during the payment process, and the callback never happens, you shouldn't keep polling the API indefinitely) In this case the frequency is not the problem, but as time passes these orphan requests can cause a great load together
+            
+            To avoid these situations, the following throttling logic is implemented on our API:
+
+             - During a 5 seconds window we only accept the first 2 [/v4/Payment/<PaymentId>/PaymentState](https://docs.barion.com/Payment-PaymentState-v4) requests with the same payment ID. This means that if you submit two requests less than 5 seconds apart, subsequent requests will be denied until 5 seconds pass after the initial successful request. These requests will return with an HTTP 429 "Too many requests" error.
+             - We keep track of requests, and if requests with the same payment ID reach a certain limit during a specific timeframe, all further requests will return HTTP 429. The exact timeframe and limits are not disclosed to the public.
+            
+            To reinforce the points above, we recommend using the callback mechanism described above, and calling the [/v4/Payment/<PaymentId>/PaymentState](https://docs.barion.com/Payment-PaymentState-v4) API endpoint only when there's a reason to do so.
+
+
+  /v2/Payment/Complete:
+    post:
+      summary: Complete a payment
+      description: This used to complete a formerly prepared and 3DS authenticated payment in the Barion system.
+      operationId: paymentCompleteV2
+      security:
+        - PosKeyAuth: []
+      tags:
+        - Barion Smart Gateway
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCompleteRequest'
+      responses:
+        '200':
+          description: Successful completion response
+          content:
+            application/json:
+              schema:
+                title: PaymentCompleteResponseWithErrorMessages
+                allOf:
+                  - $ref: '#/components/schemas/PaymentCompleteResponse'
+                  - $ref: '#/components/schemas/Errors'
+        '400':
+          description: Bad request. Invalid input parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Unauthorized. Invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+
+  /v2/Payment/FinishReservation:
+    post:
+      summary: Finish a pending reservation
+      operationId: paymentFinishReservationV2
+      security:
+        - PosKeyAuth: []
+      tags:
+        - Barion Smart Gateway
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentFinishReservationRequest'
+      responses:
+        '200':
+          description: Successful completion response
+          content:
+            application/json:
+              schema:
+                title: PaymentFinishReservationResponseWithErrorMessages
+                allOf:
+                  - $ref: '#/components/schemas/PaymentFinishReservationResponse'
+                  - $ref: '#/components/schemas/Errors'
+        '400':
+          description: Bad request. Invalid input parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Unauthorized. Invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+
+  /v2/Payment/Capture:
+    post:
+      summary: Capture of a payment
+      operationId: paymentCaptureV2
+      security:
+        - PosKeyAuth: []
+      tags:
+        - Barion Smart Gateway
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CapturePaymentRequest'
+      responses:
+        '200':
+          description: Successful capture response
+          content:
+            application/json:
+              schema:
+                title: CapturePaymentResponseWithErrorMessages
+                allOf:
+                  - $ref: '#/components/schemas/CapturePaymentResponse'
+                  - $ref: '#/components/schemas/Errors'
+        '400':
+          description: Bad request. Invalid input parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Unauthorized. Invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+
+  /v2/Payment/CancelAuthorization:
+    post:
+      summary: Cancel Authorization of a payment
+      operationId: paymentCancelAuthorizationV2
+      security:
+        - PosKeyAuth: []
+      tags:
+        - Barion Smart Gateway
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelAuthorizationRequest'
+      responses:
+        '200':
+          description: Successful cancel authorization response
+          content:
+            application/json:
+              schema:
+                title: CancelAuthorizationResponseWithErrorMessages
+                allOf:
+                  - $ref: '#/components/schemas/CancelAuthorizationResponse'
+                  - $ref: '#/components/schemas/Errors'
+        '400':
+          description: Bad request. Invalid input parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Unauthorized. Invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+
+  /v2/Payment/Refund:
+    post:
+      summary: Execute the refund of a payment
+      operationId: refundPaymentV2
+      security:
+        - PosKeyAuth: []
+      tags:
+        - Barion Smart Gateway
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundRequest'
+      responses:
+        '200':
+          description: Refund successful
+          content:
+            application/json:
+              schema:
+                title: RefundResponseWithErrorMessages
+                allOf:
+                  - $ref: '#/components/schemas/RefundResponse'
+                  - $ref: '#/components/schemas/Errors'
+        '400':
+          description: Invalid input, object invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Unauthorized. Invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+
+  /v2/Accounts:
+    get:
+      summary: Get existing accounts of the user
+      operationId: getAccountsV2
+      security:
+        - ApiKeyAuth: []
+      tags:
+        - Barion Wallet
+      responses:
+        '200':
+          description: Successful response returning user's accounts
+          content:
+            application/json:
+              schema:
+                title: AccountsResponseWithErrorMessages
+                allOf:
+                  - $ref: '#/components/schemas/AccountsResponse'
+                  - $ref: '#/components/schemas/Errors'
+        '400':
+          description: Bad request. Invalid input parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Unauthorized. Invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+
+  /v3/UserHistory/GetHistory:
+    get:
+      summary: Get User Transaction History
+      operationId: getHistoryV3
+      security:
+        - ApiKeyAuth: []
+      tags:
+        - Barion Wallet
+      parameters:
+        - name: LastVisibleItemId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: The identifier of the oldest transaction. Only transactions before the defined transaction will be included in the response.
+        - name: LastRequestTime
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: The exact time of the last request. Only transactions after or at the defined request time will be included in the response.
+        - name: Limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: The expected number of transactions in the response. Default is 20.
+        - name: Currency
+          in: query
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 3
+          description: Optional. Currency of transactions to retrieve (ISO 4217 format).
+      responses:
+        '200':
+          description: Successful response returning transaction history
+          content:
+            application/json:
+              schema:
+                title: GetUserHistoryResponseWithErrorMessages
+                allOf:
+                  - $ref: '#/components/schemas/GetUserHistoryResponse'
+                  - $ref: '#/components/schemas/Errors'
+        '400':
+          description: Bad request. Invalid input parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '404':
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Unauthorized. Invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+
+  /v3/Withdraw/BankTransfer:
+    post:
+      summary: Initiate Bank Transfer
+      description: Initiate a bank transfer from Barion Wallet via POST request
+      operationId: withdrawBankTransferV3
+      security:
+        - ApiKeyAuth: []
+      tags:
+        - Barion Wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawBankTransferRequest'
+      responses:
+        '200':
+          description: Successful bank transfer initiation response
+          content:
+            application/json:
+              schema:
+                title: WithdrawBankTransferResponseWithErrorMessages
+                allOf:
+                  - $ref: '#/components/schemas/WithdrawBankTransferResponse'
+                  - $ref: '#/components/schemas/Errors'
+        '400':
+          description: Bad request. Invalid input parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Unauthorized. Invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+
+  /v2/Statement/Download:
+    get:
+      summary: Download statement file
+      operationId: getStatementDownloadV2
+      description: |
+        The `/statement/download` API endpoint is used to download monthly or daily statement files generated by the Barion system.
+      security:
+        - ApiKeyAuth: []
+      tags:
+        - Barion Wallet
+      parameters:
+        - name: Year
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: The statement year.
+        - name: Month
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: The statement month.
+        - name: Day
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: |
+            The statement day. If specified, the system will serve a daily statement file. 
+            Otherwise, a monthly statement is returned. 
+            
+            **IMPORTANT:** Daily statements are only available if you explicitly request them from Barion customer service.
+        - name: Currency
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 3
+            enum:
+              - CZK
+              - EUR
+              - HUF
+              - USD
+          description: |
+            The currency of the statement's account. Accounts with separate currencies have separate statement files.
+            If the user doesn't have an account in the specified currency, the API returns an error message with an HTTP 400 Bad request status code.
+      responses:
+        '200':
+          description: |
+            Depending on whether a day parameter was passed, the endpoint responds with one of the following outputs:
+            - if a day parameter was passed, an .xlsx-format daily statement with an XML digital signature (signed by "Barion Payments Zrt", certified by an external issuer) to guarantee data integrity;
+            - if no day parameter was passed, a PDF-format monthly statement.
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '400':
+          description: Bad request. The user doesn't have an account in the specified currency.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '404':
+          description: Not found. The requested statement is not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '403':
+          description: Forbidden. The requested statement type(daily/monthly) is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Unauthorized. Invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+
+  /v2/Transfer/Email:
+    post:
+      summary: Send money to an e-mail address
+      operationId: transferEmailV2
+      description: |
+        The `/transfer/email` API endpoint is used to send money to another Barion Wallet.
+      security:
+        - ApiKeyAuth: []
+      tags:
+        - Barion Wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferEmailRequest'
+      responses:
+        '200':
+          description: 'Request completed'
+          content:
+            application/json:
+              schema:
+                title: TransferEmailResponseWithErrorMessages
+                oneOf:
+                  - $ref: '#/components/schemas/TransferEmailResponse'
+                  - $ref: '#/components/schemas/Errors'
+        '400':
+          description: Bad request. The user doesn't have an account in the specified currency.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Unauthorized. Invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      description: >-
+        **Barion Wallet Authentication - API Key (Wallet -> Access):**
+        
+        The Barion Wallet endpoints can only be reached using wallet-level authentication. [More details](https://docs.barion.com/Barion_Wallet_Authentication).
+      type: apiKey
+      in: header
+      name: x-api-key
+    PosKeyAuth:
+      description: >-
+        **Barion Shop Authentication - POSKey (Shops -> Actions -> Details):**
+        
+        The API endpoints related to handling a shop's payment flow are accessible using the shop's own unique API key, known as POS key. [More details](https://docs.barion.com/Barion_Shop_Authentication).
+      type: apiKey
+      in: header
+      name: x-pos-key
+
+  schemas:
+    RefundRequest:
+      type: object
+      required:
+        - PaymentId
+        - TransactionsToRefund
+      properties:
+        PaymentId:
+          type: string
+          format: uuid
+          description: The identifier of the payment in the Barion system.
+        TransactionsToRefund:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionToRefund'
+
+    TransactionToRefund:
+      type: object
+      required:
+        - TransactionId
+        - POSTransactionId
+        - AmountToRefund
+      properties:
+        TransactionId:
+          type: string
+          format: uuid
+          description: The unique identifier of the transaction in the Barion system.
+        POSTransactionId:
+          type: string
+          description: The unique identifier of the transaction at the shop that initiated the payment.
+        AmountToRefund:
+          type: number
+          format: float
+          minimum: 0.01
+          description: The amount to refund from the given transaction. Must be greater than zero and cannot exceed the remaining value of the transaction after previous refunds.
+        Comment:
+          type: string
+          description: A comment associated with the refund. This is shown to the original payer.
+
+    RefundResponse:
+      type: object
+      properties:
+        PaymentId:
+          type: string
+          format: uuid
+          description: The identifier of the payment in the Barion system.
+        RefundedTransactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RefundedTransaction'
+
+    RefundedTransaction:
+      type: object
+      properties:
+        TransactionId:
+          type: string
+          format: uuid
+          description: The unique identifier of the transaction in the Barion system.
+        POSTransactionId:
+          type: string
+          description: The unique identifier of the transaction at the shop that initiated the payment.
+        Total:
+          type: number
+          format: float
+          description: The amount that has been refunded from the given transaction.
+        Comment:
+          type: string
+          description: The comment associated with the refund.
+        Status:
+          $ref: '#/components/schemas/TransactionStatus'
+          description: The status of the transaction.
+
+    WithdrawBankTransferRequest:
+      type: object
+      properties:
+        Currency:
+          description: |
+            Required. ISO 4217 currency code of the bank transfer.
+            Barion does not perform currency conversion; ensure compatibility with recipient bank.
+          $ref: '#/components/schemas/Currency'
+        Amount:
+          type: number
+          format: float
+          minimum: 0
+          description: Total amount to withdraw, excluding fees.
+        Comment:
+          type: string
+          maxLength: 90
+          description: Comment associated with the bank transfer.
+        BankAccount:
+          $ref: '#/components/schemas/BankAccountDetails'
+          description: Details of the recipient's bank account.
+        Bank:
+          $ref: '#/components/schemas/BankDetails'
+          description: Required for foreign withdrawals. Details of the recipient's bank.
+        Recipient:
+          $ref: '#/components/schemas/RecipientDetails'
+          description: Details of the recipient.
+      required:
+        - Currency
+        - Amount
+        - BankAccount
+        - Bank
+        - Recipient
+
+    WithdrawBankTransferResponse:
+      type: object
+      properties:
+        TransactionId:
+          type: string
+          format: uuid
+          description: The unique identifier of the bank transfer, generated by the Barion system.
+        Currency:
+          description: The currency of the bank transfer.
+          $ref: '#/components/schemas/Currency'
+        Amount:
+          type: number
+          format: float
+          description: The total amount transferred.
+        Comment:
+          type: string
+          maxLength: 90
+          description: The comment associated with the bank transfer.
+        BankAccount:
+          $ref: '#/components/schemas/BankAccountDetails'
+          description: Details of the recipient's bank account.
+        Bank:
+          $ref: '#/components/schemas/BankDetails'
+          description: Details of the recipient's bank.
+        Recipient:
+          $ref: '#/components/schemas/RecipientDetails'
+          description: Details of the recipient.
+
+    BankAccountDetails:
+      type: object
+      properties:
+        Country:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: 3-letter ISO 3166-1 Alpha-3 country code of the recipient's bank.
+        Format:
+          $ref: '#/components/schemas/BankAccountNumberFormat'
+          description: Format of the bank account number.
+        AccountNumber:
+          type: string
+          maxLength: 34
+          description: |
+            Bank account number. Must comply with legal GIRO/IBAN format standards if applicable.
+      required:
+        - Country
+        - Format
+        - AccountNumber
+
+    BankAccountNumberFormat:
+      type: string
+      oneOf:
+        - enum:
+            - Unknown
+            - Giro
+            - IBAN
+            - Czech
+            - Other
+          type: string
+        - title: Unknown
+          description: The bank account number format is unknown.
+          const: Unknown
+        - title: Giro
+          description: Hungarian GIRO-format, which can be either 2×8 or 3×8 characters.
+          const: Giro
+        - title: IBAN
+          description: Standard International Bank Account Number format. Its length depends on the recipient's bank's country.
+          const: IBAN
+        - title: Czech
+          description: Czech BBANK Format, length could vary between 12 and 20 characters.
+          const: Czech
+        - title: Other
+          description: Every other formats, where the others are not applicable (e.g. Sort Code).
+          const: Other
+      description: |
+        Format of the bank account number for bank transfers.
+
+    BankDetails:
+      type: object
+      properties:
+        SwiftCode:
+          type: string
+          minLength: 8
+          maxLength: 11
+          description: |
+            Required for IBAN transfers. SwiftCode of the recipient bank for international transfers.
+
+    RecipientDetails:
+      type: object
+      properties:
+        Name:
+          type: string
+          maxLength: 100
+          description: Required. Name of the recipient.
+        Address:
+          $ref: '#/components/schemas/RecipientAddress'
+          description: Required for foreign withdrawals, optional for domestic transfers. Address of the recipient.
+      required:
+        - Name
+
+    RecipientAddress:
+      type: object
+      properties:
+        Country:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: 3-letter ISO 3166-1 Alpha-3 country code of the recipient's address.
+        Street:
+          type: string
+          description: Street and street number part of the recipient's address.
+        City:
+          type: string
+          description: City part of the recipient's address.
+        Zip:
+          type: string
+          maxLength: 16
+          description: Zip part of the recipient's address.
+      required:
+        - Country
+        - Street
+        - City
+        - Zip
+
+    TransferEmailRequest:
+      type: object
+      properties:
+        SourceAccountId:
+          type: string
+          format: uuid
+          description: The identifier of the Barion wallet. This can be determined using the [Accounts-Get-v2](https://docs.barion.com/Accounts-Get-v2) API endpoint.
+        Amount:
+          type: object
+          title: TransferEmailAmount
+          properties:
+            Currency:
+              $ref: '#/components/schemas/Currency'
+              description: The currency of the money
+            Value:
+              type: number
+              format: float
+              description: The total amount of money in the currency set above.
+        TargetEmail:
+          type: string
+          format: email
+          description: The e-mail address of the recipient of the transfer. If they are an active Barion user, they receive the money instantly. If the e-mail address is not registered in Barion, they must register in 7 days in order to claim the money. If the money is not claimed, it gets transferred back to the sender.
+        Comment:
+          type: string
+          description: The comment of the money transfer.
+          maxLength: 1000
+      required:
+        - SourceAccountId
+        - Amount
+        - TargetEmail
+        - Comment
+
+    TransferEmailResponse:
+      type: object
+      properties:
+        IsTransferSuccessful:
+          type: boolean
+          description: Indicates wether the e-money transfer was successfuly finished.
+
+    GetUserHistoryResponse:
+      type: object
+      properties:
+        UserHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserHistory'
+
+    UserHistory:
+      type: object
+      properties:
+        Id:
+          type: string
+          format: uuid
+          description: The identifier of the history item.
+        Type:
+          $ref: '#/components/schemas/HistoryItemType'
+          description: The type of the history item.
+        HappenedAtUtc:
+          type: string
+          format: date-time
+          description: The exact time when the item happened.
+        ConcurrencyOrder:
+          type: integer
+          description: The order of the transaction when more than one transaction happened at the same time. When only one transaction happened at a given timestamp, this value can be ignored.
+        SourceAccount:
+          $ref: '#/components/schemas/UserHistoryParticipant'
+          description: The user who initiated the transaction or from whom the money originated.
+        TargetAccount:
+          $ref: '#/components/schemas/UserHistoryParticipant'
+          description: The user who will receive the amount of the transaction.
+        Amount:
+          type: number
+          format: float
+          description: The amount of the transaction.
+        Currency:
+          $ref: '#/components/schemas/Currency'
+          description: The 3-character ISO 4217 currency code of the payment.
+        Description:
+          type: string
+          maxLength: 640
+          description: Description of the transaction.
+        IsInProgress:
+          type: boolean
+          description: This flag indicates that the transaction is not in the final state.
+        BalanceChangeType:
+          $ref: '#/components/schemas/BalanceChangeType'
+          description: Indicates the direction of change regarding the account's available balance.
+
+    UserHistoryParticipant:
+      type: object
+      properties:
+        UserAccountId:
+          type: string
+          format: uuid
+        Type:
+          type: string
+          enum:
+            - User
+            - Shop
+            - System
+        FirstName:
+          type: string
+        LastName:
+          type: string
+        LoginName:
+          type: string
+        OrganizationName:
+          type: string
+        ShopId:
+          type: string
+          format: uuid
+        ShopName:
+          type: string
+
+    HistoryItemType:
+      type: string
+      oneOf:
+        - enum:
+            - InternalTransfer
+            - InternalTransferToExternalUser
+            - ElectronicPayment
+            - CardPayment
+            - RefundToCard
+            - PayeeTransaction
+            - GatewayFee
+            - CardProcessingFee
+            - CardTopUp
+            - UnsuccessfulTransfer
+            - WireTopUp
+            - CashTopUp
+            - Withdraw
+            - UnsuccessfulWithdraw
+            - RefundToWallet
+            - UnsuccessfulRefundToCard
+            - IssueFromCustody
+            - WithdrawFee
+            - RejectedWithdraw
+            - RejectedWithdrawFee
+            - BankTransferPayment
+            - RefundToBankAccount
+            - UnSuccessfulRefundToBankAccount
+            - BankTransferPaymentFee
+            - BarionBalanceProcessingFee
+          type: string
+        - title: InternalTransfer
+          description: Internal e-money transfer between Barion users.
+          const: InternalTransfer
+        - title: InternalTransferToExternalUser
+          description: E-money transfer to a non-existent user. Recipient has defined timeframe to claim.
+          const: InternalTransferToExternalUser
+        - title: ElectronicPayment
+          description: Payment transaction paid with Barion Wallet.
+          const: ElectronicPayment
+        - title: CardPayment
+          description: Payment transaction paid with a bank card.
+          const: CardPayment
+        - title: RefundToCard
+          description: Refund to a bank card after a completed payment transaction.
+          const: RefundToCard
+        - title: PayeeTransaction
+          description: Complex payment scenario involving multiple payee transactions.
+          const: PayeeTransaction
+        - title: GatewayFee
+          description: Barion fee related to a payment transaction.
+          const: GatewayFee
+        - title: CardProcessingFee
+          description: Barion fee related to a payment transaction.
+          const: CardProcessingFee
+        - title: CardTopUp
+          description: Top up Barion account via bank card.
+          const: CardTopUp
+        - title: UnsuccessfulTransfer
+          description: Transfer not completed within defined timeframe, treated as unsuccessful.
+          const: UnsuccessfulTransfer
+        - title: WireTopUp
+          description: Top up Barion account via wire transfer.
+          const: WireTopUp
+        - title: CashTopUp
+          description: Top up Barion account via cash.
+          const: CashTopUp
+        - title: Withdraw
+          description: Wire transfer from Barion account to bank account.
+          const: Withdraw
+        - title: UnsuccessfulWithdraw
+          description: Unsuccessful withdrawal transaction.
+          const: UnsuccessfulWithdraw
+        - title: RefundToWallet
+          description: Refund to Barion Wallet with e-money.
+          const: RefundToWallet
+        - title: UnsuccessfulRefundToCard
+          description: Unsuccessful refund to bank card transaction.
+          const: UnsuccessfulRefundToCard
+        - title: IssueFromCustody
+          description: Transaction amount moved to custody.
+          const: IssueFromCustody
+        - title: WithdrawFee
+          description: Barion fee paid after withdrawal transactions.
+          const: WithdrawFee
+        - title: RejectedWithdraw
+          description: Rejected withdrawal transaction.
+          const: RejectedWithdraw
+        - title: RejectedWithdrawFee
+          description: Barion fee not deducted for rejected withdrawal.
+          const: RejectedWithdrawFee
+        - title: BankTransferPayment
+          description: Payment transaction completed with a wire transfer.
+          const: BankTransferPayment
+        - title: RefundToBankAccount
+          description: Refund for bank transfer payments.
+          const: RefundToBankAccount
+        - title: UnSuccessfulRefundToBankAccount
+          description: Unsuccessful refund for bank transfer payments.
+          const: UnSuccessfulRefundToBankAccount
+        - title: BankTransferPaymentFee
+          description: Barion fee related to bank transfer payments.
+          const: BankTransferPaymentFee
+        - title: BarionBalanceProcessingFee
+          description: Barion fee when payer paid with Barion balance.
+          const: BarionBalanceProcessingFee
+
+    BalanceChangeType:
+      type: string
+      oneOf:
+        - enum:
+            - NoChange
+            - Credit
+            - Debit
+          type: string
+        - title: NoChange (1)
+          description: Account balance did not change after the transaction.
+          const: NoChange
+        - title: Credit (2)
+          description: Account balance increased after the transaction.
+          const: Credit
+        - title: Debit (3)
+          description: Account balance decreased after the transaction.
+          const: Debit
+
+    AccountsResponse:
+      type: object
+      properties:
+        Accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Account'
+          description: List of accounts in the user's Barion wallet.
+
+    Account:
+      type: object
+      properties:
+        AccountId:
+          type: string
+          format: uuid
+          description: The unique identifier of the account.
+          example: 123e4567-e89b-12d3-a456-426614174000
+        Balance:
+          $ref: '#/components/schemas/Balance'
+          description: The current balance of the account.
+        Currency:
+          $ref: '#/components/schemas/Currency'
+          description: The currency of the account in 3-letter ISO country code format.
+        AccountInfo:
+          $ref: '#/components/schemas/AccountInfo'
+          description: Information about how to topup the account.
+
+    Balance:
+      type: object
+      properties:
+        Available:
+          type: number
+          format: float
+          minimum: 0
+          description: The currently available amount in the account, in the account's currency.
+          example: 100.50
+        Blocked:
+          type: number
+          format: float
+          minimum: 0
+          description: The currently blocked amount in the account, in the account's currency.
+          example: 10.00
+
+    AccountInfo:
+      type: object
+      properties:
+        BBANCountry:
+          type: string
+          description: ISO-3 country code of the country for the currency of the account.
+          example: "HUN"
+          minLength: 3
+          maxLength: 3
+        BBAN:
+          type: string
+          description: The BBAN (local bank account number) of the account for wire transfer topups (for HUF and CZK).
+        IBAN:
+          type: string
+          description: The IBAN (international bank account number) of the account for wire transfer topups.
+        Reference:
+          type: string
+          description: Code used in conjunction with the bank account number for topups to a Barion deposit account.
+        SwiftCode:
+          type: string
+          description: The Swift code of the bank for wire transfer topups.
+        Beneficiary:
+          $ref: '#/components/schemas/Beneficiary'
+
+    Beneficiary:
+      type: object
+      properties:
+        Name:
+          type: string
+          description: The displayed name of the wallet that will be the target of the wire transfer.
+          example: "Example Wallet - Barion"
+        Country:
+          type: string
+          description: ISO-3 country code of the wire transfer target's address.
+          example: "HUN"
+          minLength: 3
+          maxLength: 3
+        City:
+          type: string
+          description: The city of the wire transfer target's address.
+          example: "Budapest"
+        Zip:
+          type: string
+          description: The zip code of the wire transfer target's address.
+          example: "1234"
+        Street:
+          type: string
+          description: The street and house number of the wire transfer target's address.
+          example: "Example Street 12"
+
+    StartPaymentWithGoogleToken:
+      type: object
+      properties:
+        PayerEmailAddress:
+          type: string
+          format: email
+          description: >-
+            The e-mail address of the Google Pay user. This is provided by Google.
+          maxLength: 256
+        GooglePayToken:
+          type: string
+          description: >-
+            The Google Pay token. The encrypted Google Pay token that contains the card information.
+      required:
+        - PayerEmailAddress
+        - GooglePayToken
+
+    StartPaymentWithGoogleTokenResponse:
+      type: object
+      properties:
+        PaymentId:
+          type: string
+          format: uuid
+          description: >-
+            The identifier of the newly initialized payment, generated by the Barion system.
+        PaymentRequestId:
+          type: string
+          description: >-
+            The payment identifier supplied by the API caller in the request.
+        PaymentStatus:
+          description: 'The status of the payment in the Barion system.'
+          $ref: '#/components/schemas/PaymentStatus'
+        ThreeDSAuthClientData:
+          type: string
+          description: Encrypted client authentication data required for 3D Secure processing. This value can be used when the webshop first tried to complete the payment without user interaction, but the charge failed due to a 3D Secure challenge being mandatory.
+        TraceId:
+          type: string
+          description: A unique value generated by the card issuer to track a chain of [recurring or token payments that require 3D Secure authentication](https://docs.barion.com/Token_payment_3D_Secure). This shall be used in such scenarios, otherwise it can be ignored.
+
+    PaymentStartRequest:
+      type: object
+      properties:
+        PaymentType:
+          type: string
+          description: >-
+            The type of payment, which can be either immediate or a money reservation. Reservation means that the shop has a time window to finish the payment (even though the money transaction still takes place immediately). Reservation amounts can be modified during this time window unless the new amount is lower than the original.
+          $ref: "#/components/schemas/PaymentType"
+        ReservationPeriod:
+          type: string
+          description: >-
+            Only makes sense at reservation payments. This is the time window that allows the shop to finish (finalize) the payment. If this does not happen within the time window, the system refunds the payment amount to the payer.
+          pattern: '^(\d{1,2}\.\d{2}:\d{2}:\d{2})$'
+        DelayedCapturePeriod:
+          type: string
+          description: >-
+            This is the time window that allows the shop to complete (finalize) the payment. If this does not happen within the time window, the system releases the payment amount.
+          pattern: '^(\d{1,2}\.\d{2}:\d{2}:\d{2})$'
+        PaymentWindow:
+          type: string
+          description: >-
+            Time window for the payment to be completed. The payer must execute the payment before this elapses, or else the payment will expire and can no longer be completed.
+          pattern: '^(\d{1,2}\.\d{2}:\d{2}:\d{2})$'
+        GuestCheckOut:
+          type: boolean
+          description: >-
+            Flag indicating whether the payment can be completed without a registered Barion wallet. Guest checkout can only be done with bank cards, and the payer must supply a valid e-mail address - this is necessary for fraud control.
+        InitiateRecurrence:
+          type: boolean
+          description: >-
+            This flag indicates that the shop would like to initialize a token payment. This means that the shop is authorized to charge the funding source of the payer in the future without redirecting her/him to the Barion Smart Gateway. It can be used for one-click and subscription payment scenarios.
+        RecurrenceId:
+          type: string
+          description: >-
+            A string used to identify a given token payment. Its purpose is determined by the value of the InitiateRecurrence property.
+          maxLength: 100
+        FundingSources:
+          type: array
+          description: >-
+            An array of strings containing the allowed funding sources that can be used to complete the payment.
+          items:
+            $ref: '#/components/schemas/FundingSources'
+        PaymentRequestId:
+          type: string
+          description: >-
+            The unique identifier for the payment generated by the shop. This is so the shop can track its own payment identifiers. It is also useful for bookkeeping purposes since this shows up in the monthly account statement and the transaction history export, making identification of payments easier for the shop.
+          maxLength: 100
+        PayerHint:
+          type: string
+          description: >-
+            Required for `3DS`. The shop can supply an e-mail address as a hint on who should complete the payment. This can be used if the shop is certain about that the payer has an active Barion wallet or the shop would like to help the guest payer with filling in the email field for her/him. If provided, the Barion Smart Gateway automatically fills out the e-mail address field in the Barion wallet login form and the guest payer form, speeding up the payment process.
+          format: email
+          maxLength: 256
+        CardHolderNameHint:
+          type: string
+          description: >-
+            Required for `3DS`. The shop can provide a hint for the customer's name on the card to speed up the payment flow. If a value is provided, the cardholder name input will be pre-filled with it and the customer can use the pre-filled value instead of typing it out on its own, which speeds up the payment process.
+          minLength: 2
+          maxLength: 45
+        RecurrenceType:
+          type: string
+          description: >-
+            Required for `3DS`, when executing token payments. Describes the nature of the token payment.
+          $ref: '#/components/schemas/RecurrenceType'
+        TraceId:
+          type: string
+          description: >-
+            Required for `3DS`, when executing token payments. Identifies the nature of the token payment.
+          maxLength: 100
+        RedirectUrl:
+          type: string
+          description: >-
+            The URL where the payer should be redirected after the payment is completed or canceled. The payment identifier is added to the query string part of this URL in the `paymentId` parameter. If not provided, the system will use the redirect URL assigned to the shop that started the payment.
+          maxLength: 2000
+        CallbackUrl:
+          type:
+            - string
+            - 'null'
+          description: >-
+            The URL where the Barion system sends a request whenever there is a change in the state of the payment. The payment identifier is added to the query string part of this URL in the `paymentId` parameter.
+          maxLength: 2000
+        Transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentTransaction'
+          description: >-
+            An array of payment transactions contained in the payment. A payment must contain at least one such transaction.
+        OrderNumber:
+          type: string
+          description: >-
+            The order number generated by the shop. This is to aid the shop in identifying a given payment in its own system. This also shows up in generated monthly account statements and transaction history exports, so it also helps with bookkeeping.
+          maxLength: 100
+        ShippingAddress:
+          $ref: '#/components/schemas/ShippingAddress'
+          description: >-
+            Required for `3DS`. The shipping address associated with the payment, if applicable. Providing this is recommended because it helps the automatic anti-fraud analysis get more accurate results.
+        Locale:
+          $ref: '#/components/schemas/Locale'
+        Currency:
+          $ref: '#/components/schemas/Currency'
+        PayerPhoneNumber:
+          type: string
+          description: >-
+            Required for `3DS`. The number must be sent in the expected format, without + sign or leading zero(s).
+          maxLength: 30
+          pattern: '^\d+$'
+        PayerWorkPhoneNumber:
+          type: string
+          description: >-
+            Required for `3DS`. The work phone of the payer. The number must be sent in the expected format, without + sign or leading zero(s).
+          maxLength: 30
+          pattern: '^\d+$'
+        PayerHomeNumber:
+          type: string
+          description: >-
+            Required for `3DS`. The home phone number of the payer. The number must be sent in the expected format, without + sign or leading zero(s).
+          maxLength: 30
+          pattern: '^\d+$'
+        BillingAddress:
+          $ref: '#/components/schemas/BillingAddress'
+          description: >-
+            Required for `3DS`. The billing address associated with the payment, if applicable.
+        PayerAccountInformation:
+          $ref: '#/components/schemas/PayerAccountInformation'
+          description: >-
+            Required for `3DS`. Information about the account of the payer in the merchant's system.
+        PurchaseInformation:
+          $ref: '#/components/schemas/PurchaseInformation'
+          description: >-
+            Required for `3DS`. Information about current purchase.
+        ChallengePreference:
+          $ref: '#/components/schemas/ChallengePreference'
+          description: >-
+            Required for `3DS`. The merchant's preference of the 3DS challenge. Here you can specify what 3DS authentication should be utilized.
+      required:
+        - PaymentType
+        - GuestCheckOut
+        - FundingSources
+        - PaymentRequestId
+        - RedirectUrl
+        - Transactions
+        - Locale
+        - Currency
+
+    PaymentStartResponse:
+      type: object
+      properties:
+        PaymentId:
+          type: string
+          format: uuid
+          description: >-
+            The identifier of the newly initialized payment, generated by the Barion system.
+        PaymentRequestId:
+          type: string
+          description: >-
+            The payment identifier supplied by the API caller in the request.
+        Status:
+          description: 'The status of the payment in the Barion system.'
+          $ref: '#/components/schemas/PaymentStatus'
+        QRUrl:
+          type: string
+          description: URL for a QR code representing the payment.
+        RecurrenceResult:
+          description: Indicates the result of an authorized payment scenario. The result depends on the values of the InitiateRecurrence and RecurrenceId properties supplied in the request.
+          $ref: '#/components/schemas/RecurrenceResult'
+        Transactions:
+          type: array
+          description: An array containing all transactions associated with the payment. If the Barion system deducts fees from the shop after payments, this also contains these additional fee transactions beside the payment transactions that were sent in the request.
+          items:
+            $ref: '#/components/schemas/ProcessedTransaction'
+        GatewayUrl:
+          type: string
+          description: The URL of the Barion Smart Gateway (including the payment identifier), where the API caller should redirect the payer.
+        CallbackUrl:
+          type: string
+          description: The URL (including the payment identifier) where the Barion system will send a request to whenever there is a change in the state of the payment. If an explicit URL was not supplied, this will be the callback URL associated with the shop that started the payment.
+        RedirectUrl:
+          type: string
+          description: The URL (including the payment identifier) where the payer gets redirected to after the payment is completed or cancelled. If an explicit URL was not supplied, this will be the redirect URL associated with the shop that started the payment.
+        ThreeDSAuthClientData:
+          type: string
+          description: Encrypted client authentication data required for 3D Secure processing. This value can be used when the webshop first tried to complete the payment without user interaction, but the charge failed due to a 3D Secure challenge being mandatory.
+        TraceId:
+          type: string
+          description: A unique value generated by the card issuer to track a chain of [recurring or token payments that require 3D Secure authentication](https://docs.barion.com/Token_payment_3D_Secure). This shall be used in such scenarios, otherwise it can be ignored.
+        IsSuccessful:
+          type: boolean
+          description: Indicates whether the payment was successful
+
+    GetPaymentStateResponse:
+      type: object
+      properties:
+        PaymentId:
+          type: string
+          format: uuid
+          description: The identifier of the payment in the Barion system.
+          example: 123e4567-e89b-12d3-a456-426614174001
+        PaymentRequestId:
+          type: string
+          description: The identifier of the payment in the shop's system.
+          example: "PAYMENT123"
+        POSId:
+          type: string
+          format: uuid
+          description: The public identifier of the shop that created the payment.
+          example: 123e4567-e89b-12d3-a456-426614174002
+        POSName:
+          type: string
+          description: The name of the shop that created the payment.
+          example: "Example Shop"
+        POSOwnerEmail:
+          type: string
+          description: The e-mail address of the owner of the shop that created the payment.
+          example: "owner@example.com"
+        POSOwnerCountry:
+          type: string
+          description: ISO2 country code of the owner of the shop that created the payment.
+          example: "HU"
+        Status:
+          $ref: '#/components/schemas/PaymentStatus'
+          description: The current status of the payment in the Barion system.
+        PaymentType:
+          type: string
+          description: The type of the payment.
+          $ref: '#/components/schemas/PaymentType'
+        AllowedFundingSources:
+          type: array
+          items:
+            type: string
+          description: >-
+            The allowed funding sources defined when creating the payment.
+
+            **⚠️ Note ⚠️:** Barion's documentation is contradictory, as it refers to the bankcard as a `Card` in some places and as a `BankCard` in others, and does not mention it in others. Therefore we do not use `FundingResource` here.
+        FundingSource:
+          type: string
+          description: >-
+            The funding source used to complete the payment.
+
+            **⚠️ Note ⚠️:** Barion's documentation is contradictory as it should be of the `FundingSource` type.
+        FundingInformation:
+          $ref: '#/components/schemas/FundingInformation'
+          description: Detailed information about the funding source used to complete the payment.
+        RecurrenceType:
+          $ref: '#/components/schemas/RecurrenceType'
+          description: The RecurrenceType defined in the payment/start request for the recurring scenario.
+        TraceId:
+          type: string
+          description: The Trace Id that identifies the recurring scenario.
+          example: "trace123"
+        GuestCheckout:
+          type: boolean
+          description: Indicates whether the payment allows guest checkout.
+          example: true
+        CreatedAt:
+          type: string
+          format: date-time
+          description: The timestamp showing when the payment was created.
+          example: "2024-06-15T12:00:00Z"
+        CompletedAt:
+          type: string
+          format: date-time
+          description: The timestamp showing when the payment was completed.
+          example: "2024-06-15T12:30:00Z"
+        ValidUntil:
+          type: string
+          format: date-time
+          description: Timestamp showing the expiration time of the payment time window.
+          example: "2024-06-15T23:59:59Z"
+        ReservedUntil:
+          type: string
+          format: date-time
+          description: Timestamp showing the expiration time of the reservation time window.
+          example: "2024-06-15T15:00:00Z"
+        DelayedCaptureUntil:
+          type: string
+          format: date-time
+          description: Timestamp showing the expiration time of the authorization time window.
+          example: "2024-06-15T16:00:00Z"
+        Transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetailedPaymentTransaction'
+          description: An array containing detailed structure of all transactions associated with the payment.
+        Total:
+          type: number
+          format: float
+          description: The total amount of the payment at the time of the request.
+          example: 100.00
+        Currency:
+          $ref: '#/components/schemas/Currency'
+          description: The 3 character ISO 4217 currency code of the payment.
+        SuggestedLocale:
+          type: string
+          description: Indicates in which language the Barion Smart Gateway should be shown for the payer.
+          example: "hu-HU"
+        FraudRiskScore:
+          type: integer
+          description: A risk score computed by the anti-fraud analysis, between 0 to 100.
+          example: 15
+        CallbackUrl:
+          type: string
+          description: The URL where the Barion system sends requests whenever there is a change in the payment state.
+          example: "https://example.com/callback/barion"
+        RedirectUrl:
+          type: string
+          description: The URL where the payer gets redirected after the payment is completed or cancelled.
+          example: "https://example.com/redirect/barion"
+
+    PaymentStateResponse:
+      type: object
+      properties:
+        PaymentId:
+          type: string
+          format: uuid
+          description: The identifier of the payment in the Barion system.
+        PaymentRequestId:
+          type: string
+          description: The identifier of the payment in the shop's system.
+        POSId:
+          type: string
+          format: uuid
+          description: The public identifier of the shop that created the payment.
+        POSName:
+          type: string
+          description: The name of the shop that created the payment.
+        POSOwnerEmail:
+          type: string
+          format: email
+          description: The e-mail address of the owner of the shop that created the payment.
+        POSOwnerCountry:
+          type: string
+          description: ISO2 country code of the owner of the shop that created the payment.
+        Status:
+          description: The current status of the payment in the Barion system.
+          $ref: '#/components/schemas/PaymentStatus'
+        PaymentType:
+          type: string
+          description: The type of the payment.
+          $ref: '#/components/schemas/PaymentType'
+        AllowedFundingSources:
+          type: array
+          items:
+            type: string
+          description: >-
+            The allowed funding sources that were defined when creating the payment.
+            
+            **⚠️ Note ⚠️:** Barion's documentation is contradictory, as it refers to the bankcard as a `Card` in some places and as a `BankCard` in others, and does not mention it in others. Therefore we do not use `FundingResource` here.
+        FundingSource:
+          type: string
+          description: >-
+            The funding source that was used to complete the payment.
+            
+            **⚠️ Note ⚠️:** Barion's documentation is contradictory as it should be of the `FundingSource` type.
+        FundingInformation:
+          description: Detailed information about the funding source that was used to complete the payment.
+          $ref: '#/components/schemas/FundingInformation'
+        RecurrenceType:
+          description: The RecurrenceType that was defined in the payment/start request for the recurring scenario.
+          $ref: '#/components/schemas/RecurrenceType'
+        TraceId:
+          type: string
+          description: The Trace Id that identifies that recurring scenario.
+        GuestCheckout:
+          type: boolean
+          description: Indicates whether the payment allows guest checkout.
+        CreatedAt:
+          type: string
+          format: date-time
+          description: The locale-specific payment creation timestamp.
+        CompletedAt:
+          type: string
+          format: date-time
+          description: The locale-specific payment completion timestamp. If the payment is not yet completed, this is empty.
+        ValidUntil:
+          type: string
+          format: date-time
+          description: The payment must be completed before this locale-specific payment expiration timestamp.
+        ReservedUntil:
+          type: string
+          format: date-time
+          description: If the payment is a reservation, the shop's owner has until this locale-specific expiration timestamp to finish it. If the payment isn't a reservation, this is empty.
+        DelayedCaptureUntil:
+          type: string
+          format: date-time
+          description: If the payment is a delayed capture, the shop owner has until this locale-specific expiration timestamp to capture it. If the payment isn't a delayed capture, this is empty.
+        Transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetailedPaymentTransaction'
+        Total:
+          type: number
+          format: float
+          description: The total amount of the payment at the time of the request to the endpoint.
+        Currency:
+          $ref: '#/components/schemas/Currency'
+          description: The payment's 3-character ISO 4217 currency code.
+        SuggestedLocale:
+          type: string
+          description: Indicates the language that the Barion Smart Gateway should be displayed to the payer.
+        FraudRiskScore:
+          type: integer
+          description: A risk score computed by the anti-fraud analysis, ranging from 0 (completely legit) to 100 (certain fraud).
+        CallbackUrl:
+          type: string
+          description: The URL (including the payment identifier) where the Barion system will send (or has already sent) a request to whenever there is a change in the state of the payment.
+        RedirectUrl:
+          type: string
+          description: The URL (including the payment identifier) where the payer gets (or has already got) redirected to after the payment is, or was completed, or cancelled.
+        PaymentMethod:
+          description: The last method used when attempting to complete the payment. If there was no payment attempt made yet, this property is `Unknown`.
+          $ref: '#/components/schemas/PaymentMethod'
+
+    PaymentCompleteRequest:
+      type: object
+      properties:
+        PaymentId:
+          type: string
+          format: uuid
+          description: The identifier of the formerly initialized and authenticated payment, generated by the Barion system.
+          example: 123e4567-e89b-12d3-a456-426614174001
+
+    PaymentCompleteResponse:
+      type: object
+      properties:
+        PaymentId:
+          type: string
+          format: uuid
+          description: The identifier of the payment, generated by the Barion system.
+          example: 123e4567-e89b-12d3-a456-426614174001
+        PaymentRequestId:
+          type: string
+          description: The payment identifier supplied by the API caller in the request.
+          example: "PAYMENT123"
+        PaymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
+        IsSuccessful:
+          type: boolean
+          description: Indicates whether the charge was successful.
+          example: true
+        TraceId:
+          type: string
+          description: Identifies the nature of the token payment.
+          example: "TRACE123"
+
+    PaymentFinishReservationRequest:
+      type: object
+      properties:
+        PaymentId:
+          type: string
+          format: uuid
+          description: The identifier of the payment in the Barion system.
+          example: 123e4567-e89b-12d3-a456-426614174001
+        Transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionToFinish'
+
+    PaymentFinishReservationResponse:
+      type: object
+      properties:
+        IsSuccessful:
+          type: boolean
+          description: Result of the transaction.
+          example: true
+        PaymentId:
+          type: string
+          format: uuid
+          description: The identifier of the newly initialized payment, generated by the Barion system.
+          example: 123e4567-e89b-12d3-a456-426614174001
+        PaymentRequestId:
+          type: string
+          description: The payment identifier supplied by the API caller in the request.
+          example: "PAYMENT123"
+        Status:
+          $ref: '#/components/schemas/PaymentStatus'
+        Transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessedTransaction'
+
+    CancelAuthorizationRequest:
+      type: object
+      required:
+        - PaymentId
+      properties:
+        PaymentId:
+          type: string
+          format: uuid
+          description: The identifier of the payment in the Barion system.
+          example: 123e4567-e89b-12d3-a456-426614174001
+
+    CancelAuthorizationResponse:
+      type: object
+      required:
+        - IsSuccessful
+        - PaymentId
+        - PaymentRequestId
+        - Status
+        - Transactions
+      properties:
+        IsSuccessful:
+          type: boolean
+          description: Result of the transaction.
+          example: true
+        PaymentId:
+          type: string
+          format: uuid
+          description: The identifier of the payment, generated by the Barion system.
+          example: 123e4567-e89b-12d3-a456-426614174001
+        PaymentRequestId:
+          type: string
+          description: The payment identifier supplied by the API caller in the request.
+          example: "PAYMENT123"
+        Status:
+          $ref: '#/components/schemas/PaymentStatus'
+        Transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessedTransaction'
+
+    CapturePaymentRequest:
+      type: object
+      required:
+        - PaymentId
+        - Transactions
+      properties:
+        PaymentId:
+          type: string
+          format: uuid
+          description: The identifier of the payment in the Barion system.
+          example: 123e4567-e89b-12d3-a456-426614174001
+        Transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionToFinish'
+
+    CapturePaymentResponse:
+      type: object
+      required:
+        - IsSuccessful
+        - PaymentId
+        - PaymentRequestId
+        - Status
+        - Transactions
+      properties:
+        IsSuccessful:
+          type: boolean
+          description: Result of the transaction.
+          example: true
+        PaymentId:
+          type: string
+          format: uuid
+          description: The identifier of the payment, generated by the Barion system.
+          example: 123e4567-e89b-12d3-a456-426614174001
+        PaymentRequestId:
+          type: string
+          description: The payment identifier supplied by the API caller in the request.
+          example: "PAYMENT123"
+        Status:
+          $ref: '#/components/schemas/PaymentStatus'
+        Transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessedTransaction'
+
+    TransactionToFinish:
+      type: object
+      required:
+        - TransactionId
+        - Total
+      properties:
+        TransactionId:
+          type: string
+          format: uuid
+          description: The unique identifier of the transaction in the Barion system.
+          example: 123e4567-e89b-12d3-a456-426614174002
+        Total:
+          type: number
+          format: float
+          minimum: 0
+          description: The total amount of the transaction.
+          example: 100.00
+        Comment:
+          type: string
+          maxLength: 640
+          description: A comment associated with the transaction.
+          example: "Payment completion"
+        PayeeTransactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayeeTransactionToFinish'
+        Items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+
+    PayeeTransactionToFinish:
+      type: object
+      required:
+        - TransactionId
+        - Total
+      properties:
+        TransactionId:
+          type: string
+          format: uuid
+          description: The unique identifier of the payee transaction in the Barion system.
+          example: 123e4567-e89b-12d3-a456-426614174003
+        Total:
+          type: number
+          format: float
+          minimum: 0
+          description: The total amount of the payee transaction.
+          example: 50.00
+        Comment:
+          type: string
+          maxLength: 640
+          description: Comment of the payee transaction.
+          example: "Refund for returned item"
+
+    PaymentMethod:
+      type: string
+      description: >
+        Enumerates the completion method of a payment transaction.
+      oneOf:
+        - enum:
+            - Unknown
+            - BarionWallet
+            - BankCard
+            - GooglePay
+            - ApplePay
+            - OpenBanking
+            - Other
+          type: string
+        - const: Unknown
+          title: Unknown
+          description: The completion method is not known yet.
+        - const: BarionWallet
+          title: BarionWallet
+          description: The payment was completed with a funding source from a registered Barion wallet.
+        - const: BankCard
+          title: BankCard
+          description: The payment was completed with a bank card.
+        - const: GooglePay
+          title: GooglePay
+          description: The payment was completed via Google Pay, using a bank card or other means.
+        - const: ApplePay
+          title: ApplePay
+          description: The payment was completed via Apple Pay, using a bank card or other means.
+        - const: OpenBanking
+          title: OpenBanking
+          description: The payment was completed via a bank transfer.
+        - const: Other
+          title: Other
+          description: >
+            The payment was completed by some other method.
+            Note: This is a reserved value for future method implementations and should not be used explicitly.
+
+    FundingSources:
+      type: string
+      description: >-
+        This array inidcates the payment methods, that will be available to the payer on the gateway.
+        Note: 
+         - There is no option to disallow payment by balance since that would deny Barion Wallet users with a balance the ability to pay. There is an option to exclude cards, but not balance.
+         - Available payment methods may be limited by Barion operators for your shop, so for eg. if your contract does not allow Google Pay, it won't be displayed on Barion Smart Gateway, no matter what you send in this property.
+      oneOf:
+        - enum:
+            - All
+            - Balance
+            - GooglePay
+            - ApplePay
+            - BankTransfer
+            - BankCard
+          type: string
+
+        - title: All
+          description: Payment can be completed with all funding sources. Equivalent to `[Balance, Card, GooglePay, ApplePay]`
+          const: All
+
+        - title: Balance
+          description: Payer can use their Barion wallet balance
+          const: Balance
+
+        - title: GooglePay
+          description: >-
+            Payment can be completed using GooglePay
+            
+            **Note:** Only available as guest on capable devices
+          const: GooglePay
+
+        - title: ApplePay
+          description: >-
+            Payment can be completed using ApplePay
+            
+            **Note:** Only available as guest on capable devices
+          const: ApplePay
+
+        - title: BankTransfer
+          description: >-
+            Payment can be completed via bank transfer
+            
+            **Note:** Supported banks vary by country and currency
+          const: BankTransfer
+
+        - title: BankCard
+          description: >-
+            Payment can be completed via bank card
+          const: BankCard
+
+    Locale:
+      type: string
+      description: >-
+        This indicates in which language the Barion Smart Gateway should display for the payer upon redirect.
+      oneOf:
+        - enum:
+            - hu-HU
+            - cs-CZ
+            - de-DE
+            - en-US
+            - es-ES
+            - fr-FR
+            - sk-SK
+            - sl-SI
+          type: string
+        - const: hu-HU
+          title: Hungarian
+          description: Hungarian (Hungary)
+        - const: cs-CZ
+          title: Czech
+          description: Czech (Czech Republic)
+        - const: de-DE
+          title: German
+          description: German (Germany)
+        - const: en-US
+          title: English
+          description: English (United States)
+        - const: es-ES
+          title: Spanish
+          description: Spanish (Spain)
+        - const: fr-FR
+          title: French
+          description: French (France)
+        - const: sk-SK
+          title: Slovak
+          description: Slovak (Slovakia)
+        - const: sl-SI
+          title: Slovenian
+          description: Slovenian (Slovenia)
+      maxLength: 10
+
+    Currency:
+      type: string
+      description: >-
+        The currency of the payment. Must be supplied in ISO 4217 format. This affects all transactions included in the payment; it is not possible to define multiple transactions in different currencies.
+      oneOf:
+        - enum:
+            - "HUF"
+            - "EUR"
+            - "USD"
+            - "CZK"
+          type: string
+        - const: HUF
+          title: Hungarian Forint
+          description: Hungarian Forint
+        - const: EUR
+          title: Euro
+          description: Euro
+        - const: USD
+          title: US Dollar
+          description: US Dollar
+        - const: CZK
+          title: Czech Koruna
+          description: Czech Koruna
+      minLength: 3
+      maxLength: 3
+
+    PaymentType:
+      type: string
+      description: >-
+        The type of payment, which can be either immediate or a money reservation. Reservation means that the shop has a time window to finish the payment (even though the money transaction still takes place immediately). Reservation amounts can be modified during this time window unless the new amount is lower than the original.
+      oneOf:
+        - enum:
+            - "Immediate"
+            - "Reservation"
+            - "DelayedCapture"
+          type: string
+
+        - title: Immediate
+          const: Immediate
+
+        - title: Reservation
+          const: Reservation
+
+        - title: DelayedCapture
+          const: DelayedCapture
+
+
+    QRCodeSize:
+      type: string
+      oneOf:
+        - enum:
+            - Small
+            - Normal
+            - Large
+          type: string
+        - title: Small
+          const: Small
+        - title: Normal
+          const: Normal
+        - title: Large
+          const: Large
+
+    RecurrenceType:
+      type: string
+      oneOf:
+        - enum:
+            - OneClickPayment
+            - MerchantInitiatedPayment
+            - RecurringPayment
+          type: string
+        - title: OneClickPayment (10)
+          description: >-
+            **Consumer-initiated transactions (CITs):**
+
+            The purchase is initiated by the customer on the merchant's website , but instead of redirecting the customer to the Barion Smart Gateway the recurrence Id is used for a more convenient payment flow.
+
+            In this case `3DS authentication is required`` on the merchant's site. More info: [off-site 3DS v2 authentication](https://docs.barion.com/Token_payment_3D_Secure#Off-site_3DS_v2_authentication)
+          const: OneClickPayment
+
+        - title: MerchantInitiatedPayment (0)
+          description: >-
+            **Merchant-initiated transactions (MITs) with non-fixed value:**
+
+            The customer authorizes the merchant to charge her in the future. Subsequent payments are initiated by the merchant and the customer is not present for these purchases.
+
+            For subsequent payments no 3DS authentication (challenge) is required. This type of transaction is out of scope of the SCA framework.
+
+            **The liability in case of fraud is on the merchant.**
+          const: MerchantInitiatedPayment
+
+        - title: RecurringPayment (10)
+          description: >-
+            **Merchant-initiated transactions (MITs) with fixed value:**
+
+            The customer authorizes the merchant to charge for the services/products periodically, typically in case of subscriptions. Subsequent payments are initiated by the merchant and **the customer is not present** during these payment. Subsequent charges can only be the **same or lower as the initial amount**.
+
+            For subsequent payments **no 3DS** authentication (challenge) is required. This type of transaction can be exempted from the SCA framework.
+
+            **The liability in case of fraud is on the card issuer.**
+
+            In case of this type the RecurringExpiry and RecurringFrequency subfields are mandatory in the PurchaseInformation field. More info: [PurchaseInformation](https://docs.barion.com/PurchaseInformation)
+          const: RecurringPayment
+      description: >-
+        This enum indicates the type of recurrence that the payment represents.
+
+    PaymentTransaction:
+      type: object
+      properties:
+        POSTransactionId:
+          type: string
+          description: >-
+            The unique identifier of the transaction at the shop that started the payment.
+        Payee:
+          type: string
+          description: >-
+            The recipient user of the transaction. This Barion Wallet receives the money when the payment is completed by the payer.
+        Total:
+          type: number
+          format: float
+          description: >-
+            The total amount of the transaction. This is the amount that is charged towards the payer when completing the payment. The final amount of the transactiom. This will overwrite the original amount.
+
+            The allowed number of decimal digits depends on the currency of the payment containing this transaction:
+
+             - `CZK`: two digits
+             - `EUR`: two digits
+             - `HUF`: zero digits
+             - `USD`: two digits
+        Comment:
+          type: string
+          description: >-
+            A comment associated with the transaction. This is NOT shown to the payer. Description of the transaction, this will overwrite the original description
+        PayeeTransactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayeeTransaction'
+          description: >-
+            An array containing possible sub-transactions, which are executed after the payment was completed.
+        Items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+          description: >-
+            An array containing the items (products or services) included in the transaction.
+
+    PayeeTransaction:
+      type: object
+      properties:
+        POSTransactionId:
+          type: string
+          description: The unique identifier of the transaction at the shop that started the payment.
+          maxLength: 100
+          example: "1234567890"
+        Payee:
+          type: string
+          description: >-
+            The recipient's e-mail address. Payees other than the shop owner's Barion Wallet can only be listed if the shop has Barion Bridge enabled.
+          format: email
+          maxLength: 256
+          example: "recipient@example.com"
+        Total:
+          type: number
+          format: float
+          description: The total amount of the transaction.
+          minimum: 0.01
+          example: 100.00
+        Comment:
+          type: string
+          description: Comment of the transaction. This is shown to the recipient.
+          maxLength: 640
+          example: "Comment of the transaction. This is shown to the recipient."
+      required:
+        - POSTransactionId
+        - Payee
+        - Total
+
+    Item:
+      type: object
+      properties:
+        Name:
+          type: string
+          maxLength: 250
+          description: >-
+            The short name of the item. Shown to the payer on the Barion Smart Gateway.
+        Description:
+          type: string
+          maxLength: 500
+          description: >-
+            The detailed description of the item. Not shown to the payer on the Barion Smart Gateway.
+        ImageUrl:
+          type: string
+          description: >-
+            A URL pointing to an image that shows the item. Optional and for UX purposes only.
+        Quantity:
+          type: number
+          format: float
+          minimum: 0
+          description: >-
+            The total quantity of the item.
+        Unit:
+          type: string
+          maxLength: 50
+          description: >-
+            The measurement unit of the item.
+        UnitPrice:
+          type: number
+          format: float
+          description: >-
+            The price of one measurement unit of the item. It can be any value, even negative if it indicates e.g. discount.
+        ItemTotal:
+          type: number
+          format: float
+          description: >-
+            The total price of the item. Doesn't necessarily equal `Quantity × UnitPrice`.
+        SKU:
+          type: string
+          maxLength: 100
+          description: >-
+            The SKU value of the item in the shop's inventory system. Optional.
+      required:
+        - Name
+        - Description
+        - Quantity
+        - Unit
+        - UnitPrice
+        - ItemTotal
+
+    ShippingAddress:
+      type: object
+      properties:
+        Country:
+          type: string
+          description: >-
+            The payer's country code in ISO-3166-1 format (e.g., HU or DE). Use `ZZ` if shipping address is not available.
+          example: HU
+        City:
+          type: string
+          maxLength: 50
+          description: >-
+            Required if Region is specified. The complete name of the city of the recipient address.
+        Region:
+          type:
+            - string
+            - "null"
+          description: >-
+            Send `null` if not applicable. The country subdivision code (state or county) in [ISO-3166-2](https://en.wikipedia.org/wiki/ISO_3166-2:HU) format.
+        Zip:
+          type: string
+          maxLength: 16
+          description: >-
+            The zip code of the recipient address.
+        Street:
+          type: string
+          maxLength: 50
+          description: >-
+            The shipping street address with house number and other details.
+        Street2:
+          type: string
+          maxLength: 50
+          description: The address, continued.
+        Street3:
+          type: string
+          maxLength: 50
+          description: The address, continued.
+        FullName:
+          type: string
+          maxLength: 45
+          description: The name of the customer on the shipping address.
+      required:
+        - Country
+
+    BillingAddress:
+      type: object
+      properties:
+        Country:
+          type: string
+          maxLength: 2
+          pattern: '^[A-Za-z]{2}$'
+          description: >-
+            The payer's country code in ISO-3166-1 format (e.g., HU or DE). Use `ZZ` if shipping address is not available.
+          example: HU
+        City:
+          type: string
+          maxLength: 50
+          description: >-
+            Required if Region is specified. The complete name of the city of the recipient address.
+        Region:
+          type:
+            - string
+            - "null"
+          maxLength: 2
+          pattern: '^[A-Za-z]{2}$'
+          description: >-
+            Send `null` if not applicable. The country subdivision code (state or county) in [ISO-3166-2](https://en.wikipedia.org/wiki/ISO_3166-2:HU) format.
+        Zip:
+          type: string
+          maxLength: 16
+          description: >-
+            The zip code of the recipient address.
+        Street:
+          type: string
+          maxLength: 50
+          description: >-
+            The shipping street address with house number and other details.
+        Street2:
+          type: string
+          maxLength: 50
+          description: The address, continued.
+        Street3:
+          type: string
+          maxLength: 50
+          description: The address, continued.
+
+    PayerAccountInformation:
+      type: object
+      properties:
+        AccountId:
+          type: string
+          maxLength: 64
+          description: A unique ID of the payer's account in the merchant's system.
+        AccountCreated:
+          type: string
+          format: date-time
+          description: The timestamp when the payer created its account in UTC.
+        AccountCreationIndicator:
+          $ref: '#/components/schemas/AccountCreationIndicator'
+        AccountLastChanged:
+          type: string
+          format: date-time
+          description: The timestamp when the payer last changed its account in UTC.
+        AccountChangeIndicator:
+          $ref: '#/components/schemas/AccountChangeIndicator'
+        PasswordLastChanged:
+          type: string
+          format: date-time
+          description: The timestamp when the payer last changed its password in UTC.
+        PasswordChangeIndicator:
+          $ref: '#/components/schemas/PasswordChangeIndicator'
+        PurchasesInTheLast6Months:
+          type: integer
+          minimum: 0
+          maximum: 9999
+          description: The number of successful purchases of the payer in the last 6 months.
+        ShippingAddressAdded:
+          type: string
+          format: date-time
+          description: The timestamp when the shipping address used for this payment was added to the payer's account in UTC.
+        ShippingAddressUsageIndicator:
+          $ref: '#/components/schemas/ShippingAddressUsageIndicator'
+        ProvisionAttempts:
+          type: integer
+          minimum: 0
+          maximum: 999
+          description: How many times the customer tried to add a card to its account during the last 24 hours.
+        TransactionalActivityPerDay:
+          type: integer
+          minimum: 0
+          maximum: 999
+          description: The number of purchases attached to this payer in the last 24 hours.
+        TransactionalActivityPerYear:
+          type: integer
+          minimum: 0
+          maximum: 999
+          description: The number of purchases attached to this payer in the last 365 days.
+        PaymentMethodAdded:
+          type: string
+          format: date-time
+          description: When this card was added to the payer's account in UTC.
+        PaymentMethodIndicator:
+          $ref: '#/components/schemas/PaymentMethodIndicator'
+        SuspiciousActivityIndicator:
+          $ref: '#/components/schemas/SuspiciousActivityIndicator'
+
+    PaymentMethodIndicator:
+      type: string
+      description: >-
+        This enum indicates when had the payer added the card to it's account.
+
+        **⚠️ NOTE ⚠️:** This parameter is missing from the [official documentation](https://docs.barion.com/PayerAccountInformation), but it is in the [example code](https://github.com/barion/barion-web-php/blob/77582de1a3891f3171999c5278104f63cdb84096/examples/example_start_payment_with_3dsecure_parameters.php#L76) and I managed to [find the page](https://docs.barion.com/PaymentMethodIndicator) for it.
+      oneOf:
+        - enum:
+            - NoAccount
+            - ThisTransaction
+            - LessThan30Days
+            - Between30And60Days
+            - MoreThan60Days
+
+        - title: NoAccount (0)
+          description: The card has not been added, it's a guest payment.
+          const: NoAccount
+
+        - title: ThisTransaction (10)
+          description: The card has been added with this payment.
+          const: ThisTransaction
+
+        - title: LessThan30Days (20)
+          description: The card has been added less than 30 days ago.
+          const: LessThan30Days
+
+        - title: Between30And60Days (0)
+          description: The card has been added between 30 and 60 days ago.
+          const: Between30And60Days
+
+        - title: MoreThan60Days (0)
+          description: The card has been added more than 60 days ago.
+          const: MoreThan60Days
+
+    AccountCreationIndicator:
+      type: string
+      oneOf:
+        - enum:
+            - NoAccount
+            - CreatedDuringThisTransaction
+            - LessThan30Days
+            - Between30And60Days
+            - MoreThan60Days
+          type: string
+
+        - title: NoAccount (0)
+          description: No account was created, it is a guest payment.
+          const: NoAccount
+
+        - title: CreatedDuringThisTransaction (10)
+          description: The account was created during this payment.
+          const: CreatedDuringThisTransaction
+
+        - title: LessThan30Days (20)
+          description: The account was created less than 30 days ago.
+          const: LessThan30Days
+
+        - title: Between30And60Days (30)
+          description: The account was created between 30 and 60 days ago.
+          const: Between30And60Days
+
+        - title: MoreThan60Days (40)
+          description: The account was created more than 60 days ago.
+          const: MoreThan60Days
+
+      description: >-
+        Enumeration indicating when the payer's account was created.
+
+    AccountChangeIndicator:
+      type: string
+      oneOf:
+        - enum:
+            - ChangedDuringThisTransaction
+            - LessThan30Days
+            - Between30And60Days
+            - MoreThan60Days
+          type: string
+
+        - title: ChangedDuringThisTransaction (0)
+          description: The account was changed during this payment.
+          const: ChangedDuringThisTransaction
+
+        - title: LessThan30Days (10)
+          description: The account was changed less than 30 days ago.
+          const: LessThan30Days
+
+        - title: Between30And60Days (20)
+          description: The account was changed between 30 and 60 days ago.
+          const: Between30And60Days
+
+        - title: MoreThan60Days (30)
+          description: The account was changed more than 60 days ago.
+          const: MoreThan60Days
+      description: >-
+        Enumeration indicating how long ago the payer's account was last changed.
+
+    PasswordChangeIndicator:
+      type: string
+      oneOf:
+        - enum:
+            - NoChange
+            - ChangedDuringThisTransaction
+            - LessThan30Days
+            - Between30And60Days
+            - MoreThan60Days
+          type: string
+
+        - title: NoChange (0)
+          description: The password was not yet changed.
+          const: NoChange
+
+        - title: ChangedDuringThisTransaction (10)
+          description: The password was changed during this payment.
+          const: ChangedDuringThisTransaction
+
+        - title: LessThan30Days (20)
+          description: The password was changed less than 30 days ago.
+          const: LessThan30Days
+
+        - title: Between30And60Days (30)
+          description: The password was changed between 30 and 60 days ago.
+          const: Between30And60Days
+
+        - title: MoreThan60Days (40)
+          description: The password was changed more than 60 days ago.
+          const: MoreThan60Days
+
+      description: >-
+        Enumeration indicating how long ago the payer's password was last changed.
+
+    ShippingAddressUsageIndicator:
+      type: string
+      oneOf:
+        - enum:
+            - ThisTransaction
+            - LessThan30Days
+            - Between30And60Days
+            - MoreThan60Days
+          type: string
+
+        - title: ThisTransaction (0)
+          description: The shipping address was added during this payment.
+          const: ThisTransaction
+
+        - title: LessThan30Days (10)
+          description: The shipping address was added less than 30 days ago.
+          const: LessThan30Days
+
+        - title: Between30And60Days (20)
+          description: The shipping address was added between 30 and 60 days ago.
+          const: Between30And60Days
+
+        - title: MoreThan60Days (30)
+          description: The shipping address was added more than 60 days ago.
+          const: MoreThan60Days
+
+      description: >-
+        Enumeration indicating how long ago the shipping address was added to the payer's account.
+
+    SuspiciousActivityIndicator:
+      type: string
+      oneOf:
+        - enum:
+            - NoSuspiciousActivityObserved
+            - SuspiciousActivityObserved
+          type: string
+
+        - title: NoSuspiciousActivityObserved (0)
+          description: There was nothing suspicious.
+          const: NoSuspiciousActivityObserved
+
+        - title: SuspiciousActivityObserved (10)
+          description: There was suspicious activity.
+          const: SuspiciousActivityObserved
+
+      description: >-
+        Enumeration indicating whether there was any suspicious activity regarding the payer.
+
+    PurchaseInformation:
+      type: object
+      properties:
+        DeliveryTimeframe:
+          $ref: '#/components/schemas/DeliveryTimeframeType'
+          description: The speed of the delivery method.
+        DeliveryEmailAddress:
+          type: string
+          description: If goods are sent electronically, the payer's email address where goods should be delivered.
+        PreOrderDate:
+          type: string
+          format: date-time
+          description: The date when pre-ordered goods will be available, in UTC.
+        AvailabilityIndicator:
+          $ref: '#/components/schemas/AvailabilityIndicator'
+          description: When the goods will be available.
+        ReOrderIndicator:
+          $ref: '#/components/schemas/ReOrderIndicator'
+          description: Indicates if this purchase is a re-order.
+        ShippingAddressIndicator:
+          $ref: '#/components/schemas/ShippingAddressIndicator'
+          description: What kind of shipping is used.
+        RecurringExpiry:
+          type: string
+          format: date-time
+          description: >-
+            `Required` in case of initial `Recurring` payment. The date past which no further payments should be accepted in the recurrence cycle, required for initial Recurring payments, in UTC.
+        RecurringFrequency:
+          type: integer
+          minimum: 1
+          maximum: 9999
+          description: >-
+            `Required` in case of initial `Recurring` payment. Minimum number of days between subsequent payments for initial Recurring payments.
+        PurchaseType:
+          $ref: '#/components/schemas/PurchaseType'
+          description: The type of purchase.
+        GiftCardPurchase:
+          $ref: '#/components/schemas/GiftCardPurchase'
+          description: Information about purchased gift cards.
+        PurchaseDate:
+          type: string
+          format: date-time
+          description: The date and time of the purchase, in UTC.
+
+    DeliveryTimeframeType:
+      type: string
+      oneOf:
+        - enum:
+            - ElectronicDelivery
+            - SameDayShipping
+            - OvernightShipping
+            - TwoDayOrMoreShipping
+          type: string
+
+        - title: ElectronicDelivery (0)
+          description: The goods can be downloaded immediately.
+          const: ElectronicDelivery
+
+        - title: SameDayShipping (10)
+          description: The delivery will happen on the same day as the purchase.
+          const: SameDayShipping
+
+        - title: OvernightShipping (20)
+          description: The delivery will happen on the next day as the purchase.
+          const: OvernightShipping
+
+        - title: TwoDayOrMoreShipping (30)
+          description: The delivery will happen two or more days later than the purchase.
+          const: TwoDayOrMoreShipping
+      description: Enumeration indicating the length of the delivery period.
+
+    AvailabilityIndicator:
+      type: string
+      oneOf:
+        - enum:
+            - MerchandiseAvailable
+            - FutureAvailability
+          type: string
+
+        - title: MerchandiseAvailable (0)
+          description: The goods are already available.
+          const: MerchandiseAvailable
+
+        - title: FutureAvailability (10)
+          description: The goods will be available later on.
+          const: FutureAvailability
+      description: Enumeration indicating when the goods will be available.
+
+    ReOrderIndicator:
+      type: string
+      oneOf:
+        - enum:
+            - FirstTimeOrdered
+            - Reordered
+          type: string
+        - title: FirstTimeOrdered (0)
+          description: This is ordered for the first time.
+          const: FirstTimeOrdered
+        - title: Reordered (10)
+          description: This is a re-order of a previous one.
+          const: Reordered
+      description: Enumeration indicating if the purchase is a re-order.
+
+    ShippingAddressIndicator:
+      type: string
+      oneOf:
+        - enum:
+            - ShipToCardholdersBillingAddress
+            - ShipToAnotherVerifiedAddress
+            - ShipToDifferentAddress
+            - ShipToStore
+            - DigitalGoods
+            - TravelAndEventTickets
+            - Other
+          type: string
+        - title: ShipToCardholdersBillingAddress (0)
+          description: Delivery is to the same address as the billing address.
+          const: ShipToCardholdersBillingAddress
+        - title: ShipToAnotherVerifiedAddress (10)
+          description: Delivery is to another verified address.
+          const: ShipToAnotherVerifiedAddress
+        - title: ShipToDifferentAddress (20)
+          description: Delivery is to another unverified address.
+          const: ShipToDifferentAddress
+        - title: ShipToStore (30)
+          description: Delivery is dropped off at the store.
+          const: ShipToStore
+        - title: DigitalGoods (40)
+          description: These are digital goods that can be downloaded.
+          const: DigitalGoods
+        - title: TravelAndEventTickets (50)
+          description: These are downloadable tickets.
+          const: TravelAndEventTickets
+        - title: Other (60)
+          description: Other shipping method.
+          const: Other
+      description: Enumeration indicating what kind of shipping is used.
+
+    PurchaseType:
+      type: string
+      oneOf:
+        - enum:
+            - GoodsAndServicePurchase
+            - CheckAcceptance
+            - AccountFunding
+            - QuasiCashTransaction
+            - PrePaidVacationAndLoan
+          type: string
+        - title: GoodsAndServicePurchase (0)
+          const: GoodsAndServicePurchase
+        - title: CheckAcceptance (1)
+          const: CheckAcceptance
+        - title: AccountFunding (2)
+          const: AccountFunding
+        - title: QuasiCashTransaction (3)
+          const: QuasiCashTransaction
+        - title: PrePaidVacationAndLoan (4)
+          const: PrePaidVacationAndLoan
+      description: Enumeration indicating the type of purchase.
+
+    GiftCardPurchase:
+      type: object
+      properties:
+        Amount:
+          type: number
+          format: float
+          minimum: 0
+          description: >-
+            The total amount of gift cards purchased, depending on payment currency precision.
+
+            - `CZK`: two digits
+            - `EUR`: two digits
+            - `HUF`: zero digits
+            - `USD`: two digits
+        Count:
+          type: integer
+          minimum: 1
+          maximum: 99
+          description: The number of gift cards purchased.
+
+    ChallengePreference:
+      type: string
+      oneOf:
+        - enum:
+            - NoPreference
+            - ChallengeRequired
+            - NoChallengeNeeded
+          type: string
+
+        - title: NoPreference (0)
+          description: >-
+            The merchant does not have any preference about how the 3DS authentication should be used for this payment. Liability is on the card issuer.
+
+            *In this case Barion decides about the usage of 3DS authentication.*
+          const: NoPreference
+        - title: ChallengeRequired (10)
+          description: >-
+            The customer should be challenged during the payment process for additional security. Liability is on the card issuer.
+
+            *In this case 3DS authentication will be performed even if the transaction would be eligible for frictionless flow.*
+          const: ChallengeRequired
+        - title: NoChallengeNeeded (20)
+          description: >-
+            Transaction Risk Analysis (TRA) will be performed on this payment (for more information see [Barion Fraud Buster](https://www.barion.com/en/payment-gateway/features/anti-fraud-solution/)), if it is enabled. If the score is below 30, an exemption will be sent to the payment processor, indicating that the payment underwent TRA, and no 3DS authentication should be performed. Payment with a fraud score over 30 will be sent requesting 3DS Challenge. The advantage of applying this option is higher conversion (since no additional user interaction is needed when all prerequisites are met), however the liability is on the merchant.
+          const: NoChallengeNeeded
+
+    ProcessedTransaction:
+      type: object
+      properties:
+        POSTransactionId:
+          type: string
+          description: Unique identifier of the transaction at the shop.
+        TransactionId:
+          type: string
+          format: uuid
+          description: Unique identifier of the transaction generated by Barion.
+        Status:
+          $ref: "#/components/schemas/TransactionStatus"
+        Currency:
+          $ref: '#/components/schemas/Currency'
+          description: 3 character ISO 4217 currency code.
+        TransactionTime:
+          type: string
+          format: date-time
+          description: Timestamp of the transaction.
+
+    RecurrenceResult:
+      type: string
+      oneOf:
+        - enum:
+            - None
+            - Successful
+            - Failed
+            - NotFound
+            - ThreeDSAuthenticationRequired
+          type: string
+
+        - title: None
+          description: If **InitiateRecurrence** was `true`, and a new authorized payment was successfully created, this will be `None` (because no actual token charge took place yet)
+          const: None
+
+        - title: Successful
+          description: If this charge is successful, the result is `Successful`.
+          const: Successful
+
+        - title: Failed
+          description: f the system could not charge the funding source, the result is `Failed`.
+          const: Failed
+
+        - title: NotFound
+          description: If the given identifier is invalid or does not exist, the result is `NotFound`.
+          const: NotFound
+
+        - title: ThreeDSAuthenticationRequired
+          description: In case the payment can not be processed due to lack of 3DS v2 information `ThreeDSAuthenticationRequired` is returned. In this case, either offsite 3DS v2 authentication should be performed or the TraceId of the initial payment should be sent as well.
+          const: ThreeDSAuthenticationRequired
+
+    TransactionStatus:
+      type: string
+      oneOf:
+        - enum:
+            - Prepared
+            - Started
+            - Succeeded
+            - Timeout
+            - ShopIsDeleted
+            - ShopIsClosed
+            - Rejected
+            - RejectedByShop
+            - Storno
+            - Reserved
+            - Deleted
+            - Expired
+            - Authorized
+            - Reversed
+            - InvalidPaymentRecord
+            - PaymentTimeOut
+            - InvalidPaymentStatus
+            - PaymentSenderOrRecipientIsInvalid
+            - Unknown
+          type: string
+
+        - title: Prepared (0)
+          description: The transaction is prepared, and is ready to be completed.
+          const: Prepared
+
+        - title: Started (1)
+          description: The transaction has been started. This is used at reservation payments.
+          const: Started
+
+        - title: Succeeded (2)
+          description: The transaction was successfully completed.
+          const: Succeeded
+
+        - title: Timeout (3)
+          description: The transaction has timed out.
+          const: Timeout
+
+        - title: ShopIsDeleted (4)
+          description: The shop that created the transaction has been deleted in the meantime.
+          const: ShopIsDeleted
+
+        - title: ShopIsClosed (5)
+          description: The shop that created the transaction has been closed in the meantime.
+          const: ShopIsClosed
+
+        - title: Rejected (6)
+          description: The user rejected the transaction.
+          const: Rejected
+
+        - title: RejectedByShop (12)
+          description: The transaction was cancelled by the shop.
+          const: RejectedByShop
+
+        - title: Storno (13)
+          description: Storno amount for a previous transaction.
+          const: Storno
+
+        - title: Reserved (14)
+          description: The transaction amount has been reserved.
+          const: Reserved
+
+        - title: Deleted (15)
+          description: The transaction was deleted.
+          const: Deleted
+
+        - title: Expired (16)
+          description: The transaction has expired.
+          const: Expired
+
+        - title: Authorized (17)
+          description: The card payment transaction is authorized but not captured yet.
+          const: Authorized
+
+        - title: Reversed (18)
+          description: The authorization was reversed (either captured with amount 0, or not captured at all).
+          const: Reversed
+
+        - title: InvalidPaymentRecord (210)
+          description: A payment to the given transaction does not exist.
+          const: InvalidPaymentRecord
+
+        - title: PaymentTimeOut (211)
+          description: The payment of the transaction has timed out.
+          const: PaymentTimeOut
+
+        - title: InvalidPaymentStatus (212)
+          description: The payment of the transaction is in an invalid status.
+          const: InvalidPaymentStatus
+
+        - title: PaymentSenderOrRecipientIsInvalid (213)
+          description: The sender or recipient user was not found in the Barion system.
+          const: PaymentSenderOrRecipientIsInvalid
+
+        - title: Unknown (255)
+          description: The transaction is in an unknown state.
+          const: Unknown
+
+    TransactionType:
+      type: string
+      description: >
+        Enumerates the type of a transaction.
+      oneOf:
+        - enum:
+            - Commission
+            - Shop
+            - TransferToExistingUser
+            - TransferToTechnicalAccount
+            - TransferFromTechnicalAccount
+            - Storno
+            - WithdrawFee
+            - ClosureFee
+            - StornoBankTransferFee
+            - CashDepositFee
+            - ForeignDepositFee
+            - ForeignWithdrawFee
+            - ForeignClosureFee
+            - Reserve
+            - StornoReserve
+            - CardTopUpFee
+            - CardProcessingFee
+            - GatewayFee
+            - CardProcessingFeeStorno
+            - Unspecified
+            - In
+          type: string
+        - const: Commission
+          title: Commission
+          description: E-money transfer fee.
+        - const: Shop
+          title: Shop
+          description: Completed e-money payment between a user and a shop.
+        - const: TransferToExistingUser
+          title: TransferToExistingUser
+          description: E-money transfer between two existing Barion users.
+        - const: TransferToTechnicalAccount
+          title: TransferToTechnicalAccount
+          description: E-money transfer from an existing Barion user to a non-existent user.
+        - const: TransferFromTechnicalAccount
+          title: TransferFromTechnicalAccount
+          description: E-money credited to a Barion Wallet that wasn't yet created.
+        - const: Storno
+          title: Storno
+          description: E-money credited back to the source Barion Wallet.
+        - const: WithdrawFee
+          title: WithdrawFee
+          description: Fee of a bank transfer to a bank account.
+        - const: ClosureFee
+          title: ClosureFee
+          description: Fee of closing a Barion Wallet.
+        - const: StornoBankTransferFee
+          title: StornoBankTransferFee
+          description: Fee of cancelling a Barion Wallet-to-bank account transfer.
+        - const: CashDepositFee
+          title: CashDepositFee
+          description: Fee charged for topping up a Barion Wallet using cash.
+        - const: ForeignDepositFee
+          title: ForeignDepositFee
+          description: Fee incurred for topping up a Barion Wallet from a bank account in a foreign country.
+        - const: ForeignWithdrawFee
+          title: ForeignWithdrawFee
+          description: Fee incurred when transferring money from a Barion Wallet to a bank account in a foreign country.
+        - const: ForeignClosureFee
+          title: ForeignClosureFee
+          description: Fee incurred when closing a Barion Wallet and transferring the balance to a bank account in a foreign country.
+        - const: Reserve
+          title: Reserve
+          description: Reserved amount in a Barion Wallet.
+        - const: StornoReserve
+          title: StornoReserve
+          description: The remainder amount returned when a previously reserved payment was finished with a lower amount.
+        - const: CardTopUpFee
+          title: CardTopUpFee
+          description: Fee of topping up a Barion Wallet using a bank card.
+        - const: CardProcessingFee
+          title: CardProcessingFee
+          description: Bank card processing fee incurred by a Barion shop.
+        - const: GatewayFee
+          title: GatewayFee
+          description: The Barion Smart Gateway fee incurred by a Barion shop.
+        - const: CardProcessingFeeStorno
+          title: CardProcessingFeeStorno
+          description: Refund of a previously reserved bank card processing fee.
+        - const: Unspecified
+          title: Unspecified
+          description: Placeholder transaction when the type isn't determined yet.
+        - const: In
+          title: In
+          description: Amount credited to a Barion Wallet in a bank transfer top-up
+
+    PaymentStatus:
+      type: string
+      description: The status of the payment in the Barion system.
+      oneOf:
+        - enum:
+            - Prepared
+            - Started
+            - InProgress
+            - Waiting
+            - Reserved
+            - Authorized
+            - Canceled
+            - Succeeded
+            - Failed
+            - PartiallySucceeded
+            - Expired
+          type: string
+
+        - title: Prepared (10)
+          description: The payment is prepared. This means it can be completed unless the payment time window expires.
+          const: Prepared
+
+        - title: Started (20)
+          description: The payment process has been started. This means the payer started the execution of the payment with a funding source.
+          const: Started
+
+        - title: InProgress (21)
+          description: The payment process is currently in progress. This means that the communication between Barion and the bank card processing system is currently taking place. No alterations can be made to the payment in this status.
+          const: InProgress
+
+        - title: Waiting (22)
+          description: The payment was paid with bank transfer and the result of the bank transfer is not known yet. Used in [Payment_Buttons](https://docs.barion.com/Bank_Transfer_Payment) scenarios.
+          const: Waiting
+
+        - title: Reserved (25)
+          description: The payment was completed by the payer, but the amount is still reserved. This means that the payment should be finished (finalized) unless the reservation period expires.
+          const: Reserved
+
+        - title: Authorized (26)
+          description: The payment was completed by the payer, but the amount is not charged yet on the bankcard. The payment must be finished before the authorization period expires.
+          const: Authorized
+
+        - title: Canceled (30)
+          description: The payment has been explicitly cancelled (rejected) by the payer. This is a final status, the payment can no longer be completed.
+          const: Canceled
+
+        - title: Succeeded (40)
+          description: The payment has been fully completed. This is a final status, the payment can no longer be altered.
+          const: Succeeded
+
+        - title: Failed (50)
+          description: The payment has failed because of unknown reasons. Used in payment scenarios that were paid with bank transfer.
+          const: Failed
+
+        - title: PartiallySucceeded (60)
+          description: This can occur if a complex reservation payment contains multiple transactions, and only some of them are finished. If all transactions are finished, the payment status will change to Succeeded.
+          const: PartiallySucceeded
+
+        - title: Expired (70)
+          description: >-
+            The payment was expired. This can occur due to numerous reasons:
+            
+             - The payment time window has passed and the payer did not complete the payment.
+             - A reserved payment was not finished during the reservation period. In this case, the money is refunded to the payer.
+            
+            This is a final status, the payment can no longer be completed.
+          const: Expired
+
+    FundingInformation:
+      type: object
+      properties:
+        BankCard:
+          $ref: '#/components/schemas/BankCard'
+        AuthorizationCode:
+          type: string
+          description: >
+            The authorization code received by the card processing system when executing the payment.
+            If authorization was not successful, this is empty.
+        ProcessResult:
+          $ref: '#/components/schemas/BankCardProcessResult'
+
+    BankCardProcessResult:
+      type: string
+      oneOf:
+        - enum:
+            - Successful
+            - ProblemWithCard
+            - LowFunds
+            - LostOrStolenCard
+            - Declined
+            - FraudulentTransaction
+            - CardSystemError
+            - ScaSoftDeclined
+            - FailedDuringAuthentication
+            - CardNotSupported
+            - Unknown
+          type: string
+        - title: Successful
+          const: Successful
+          description: The card transaction was successful.
+        - title: ProblemWithCard
+          const: ProblemWithCard
+          description: >
+            The card transaction was unsuccessful: card number, CVC or/and expiry is wrong.
+            The card may have been stolen, deleted, disabled or disabled for online transactions.
+
+        - title: LowFunds
+          const: LowFunds
+          description: >
+            The card transaction was unsuccessful due to insufficient funds or limits were reached.
+
+        - title: LostOrStolenCard
+          const: LostOrStolenCard
+          description: The credit card has been reported lost or stolen.
+        - title: Declined
+          const: Declined
+          description: The payment card was declined by the acquirer.
+        - title: FraudulentTransaction
+          const: FraudulentTransaction
+          description: >
+            Potentially fraudulent transaction, the monitoring system declined the transaction.
+
+        - title: CardSystemError
+          const: CardSystemError
+          description: The card transaction failed due to the card system.
+        - title: ScaSoftDeclined
+          const: ScaSoftDeclined
+          description: >
+            The payment card did not support SCA at the time of the transaction.
+
+        - title: FailedDuringAuthentication
+          const: FailedDuringAuthentication
+          description: >
+            There was an error during the SCA process thus authentication failed.
+            This may not be returned if ChallengePreference was set to "NoChallengeNeeded".
+
+        - title: CardNotSupported
+          const: CardNotSupported
+          description: The payment card is not supported at the time of the transaction.
+        - title: Unknown
+          const: Unknown
+          description: >
+            The bank system did not provide information about the operation,
+            the result of the process could not be determined.
+
+
+    BankCard:
+      type: object
+      properties:
+        MaskedPan:
+          type: string
+          description: The last four digits of the card number.
+        BankCardType:
+          $ref: '#/components/schemas/CardType'
+        ValidThruYear:
+          type: string
+          description: The 4-digit year part of the card validity date.
+        ValidThruMonth:
+          type: string
+          description: The 2-digit month part of the card validity date.
+
+    CardType:
+      type: string
+      description: >
+        Enumerates the type of a bank card.
+      oneOf:
+        - enum:
+            - Unknown
+            - MasterCard
+            - Visa
+            - AmericanExpress
+            - Electron
+            - Maestro
+            - DinersClub
+            - Discover
+          type: string
+        - const: Unknown
+          description: The card type is unknown.
+        - const: MasterCard
+          description: Standard MasterCard bank cards.
+        - const: Visa
+          description: Standard Visa bank cards.
+        - const: AmericanExpress
+          description: All kinds of American Express cards.
+        - const: Electron
+          description: VISA Electron bank cards.
+        - const: Maestro
+          description: 16 or 19 digit Maestro cards.
+        - const: DinersClub
+          description: Diners Club cards.
+        - const: Discover
+          description: Discover cards.
+
+    UserInformation:
+      type: object
+      properties:
+        Name:
+          $ref: '#/components/schemas/NameInformation'
+          description: Structure representing the name of the user.
+        Email:
+          type: string
+          format: email
+          description: The e-mail address of the user.
+
+    NameInformation:
+      type: object
+      properties:
+        LoginName:
+          type: string
+          description: The login name of the user.
+        FirstName:
+          type: string
+          description: The first name of the user, if applicable.
+        LastName:
+          type: string
+          description: The last name of the user, if applicable.
+        OrganizationName:
+          type: string
+          description: The organization name of the user, if applicable.
+
+    DetailedPaymentTransaction:
+      type: object
+      properties:
+        TransactionId:
+          type: string
+          format: uuid
+          description: The unique identifier of the transaction generated by the Barion system.
+        POSTransactionId:
+          type: string
+          description: The unique identifier of the transaction at the shop that started the payment.
+        TransactionTime:
+          type: string
+          format: date-time
+          description: The timestamp of the transaction.
+        Total:
+          type: number
+          format: float
+          description: >
+            The original amount of the transaction. This is determined upon payment creation
+            and is not affected by any later events.
+        Currency:
+          $ref: '#/components/schemas/Currency'
+          description: The 3 character ISO 4217 currency code of the transaction.
+        Payer:
+          $ref: '#/components/schemas/UserInformation'
+          description: The user that paid the transaction.
+        Payee:
+          $ref: '#/components/schemas/UserInformation'
+          description: The user that received the money from the transaction.
+        Comment:
+          type: string
+          description: The comment of the transaction set by the shop when the payment was created.
+        Status:
+          $ref: '#/components/schemas/TransactionStatus'
+          description: The current status of the transaction.
+        TransactionType:
+          description: The type of the transaction.
+          oneOf:
+            - $ref: '#/components/schemas/TransactionType'
+            - $ref: '#/components/schemas/HistoryItemType'
+        Items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+          description: The items included in the transaction.
+        RelatedId:
+          type: string
+          format: uuid
+          description: >
+            The identifier of the related transaction, if it exists.
+            For example, additional fee transactions have the identifier of the original payment transaction in this field.
+
+    Errors:
+      type: object
+      properties:
+        Errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Error'
+
+    Error:
+      type: object
+      properties:
+        ErrorCode:
+          type: string
+          description: The error code of the payment, can be interpreted as an error Id.
+        Title:
+          type: string
+          description: The title of the error, is a more readable form of the error.
+        Description:
+          type: string
+          description: The description of the error, more information about the error.
+        EndPoint:
+          type: string
+          description: The URL of the API endpoint to help the reproduction of the error scenario.
+        AuthData:
+          type: string
+          format: email
+          description: The e-mail address of the caller to help the reproduction of the error scenario.
+        HappenedAt:
+          type: string
+          description: The timestamp of the response.
+          format: date-time
+        PaymentId:
+          type: string
+          description: If the error is related to a business process that involves a given payment, the public identifier of the payment is supplied here. This property is not present for all errors.
+
+  headers: { }
+  responses: { }
+  parameters: { }
+tags: [ ]
+servers:
+  - url: https://api.barion.com
+    description: Base URL for API requests in the **Live (production)** environment
+    variables: { }
+    x-last-modified: 1718440928523
+  - url: https://api.test.barion.com
+    description: Base URL for API requests in the **Sandbox (test)** environment
+    variables: { }
+    x-last-modified: 1718440953385
+security: []

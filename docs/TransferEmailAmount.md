@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**currency** | [**Currency**](Currency.md) | The currency of the money | [optional] 
+**currency** | **str** | The currency of the payment. Must be supplied in ISO 4217 format. This affects all transactions included in the payment; it is not possible to define multiple transactions in different currencies. | [optional] 
 **value** | **float** | The total amount of money in the currency set above. | [optional] 
 
 ## Example

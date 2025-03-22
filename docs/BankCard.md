@@ -6,7 +6,7 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **masked_pan** | **str** | The last four digits of the card number. | [optional] 
-**bank_card_type** | [**CardType**](CardType.md) |  | [optional] 
+**bank_card_type** | **str** | Enumerates the type of a bank card.  | [optional] 
 **valid_thru_year** | **str** | The 4-digit year part of the card validity date. | [optional] 
 **valid_thru_month** | **str** | The 2-digit month part of the card validity date. | [optional] 
 

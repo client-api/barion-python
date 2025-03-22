@@ -6,7 +6,7 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **country** | **str** | 3-letter ISO 3166-1 Alpha-3 country code of the recipient&#39;s bank. | 
-**format** | [**BankAccountNumberFormat**](BankAccountNumberFormat.md) | Format of the bank account number. | 
+**format** | **str** | Format of the bank account number for bank transfers.  | 
 **account_number** | **str** | Bank account number. Must comply with legal GIRO/IBAN format standards if applicable.  | 
 
 ## Example

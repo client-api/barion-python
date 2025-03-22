@@ -5,12 +5,12 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**delivery_timeframe** | [**DeliveryTimeframeType**](DeliveryTimeframeType.md) | The speed of the delivery method. | [optional] 
+**delivery_timeframe** | **str** | Enumeration indicating the length of the delivery period. | [optional] 
 **delivery_email_address** | **str** | If goods are sent electronically, the payer&#39;s email address where goods should be delivered. | [optional] 
 **pre_order_date** | **datetime** | The date when pre-ordered goods will be available, in UTC. | [optional] 
-**availability_indicator** | [**AvailabilityIndicator**](AvailabilityIndicator.md) | When the goods will be available. | [optional] 
-**re_order_indicator** | [**ReOrderIndicator**](ReOrderIndicator.md) | Indicates if this purchase is a re-order. | [optional] 
-**shipping_address_indicator** | [**ShippingAddressIndicator**](ShippingAddressIndicator.md) | What kind of shipping is used. | [optional] 
+**availability_indicator** | **str** | Enumeration indicating when the goods will be available. | [optional] 
+**re_order_indicator** | **str** | Enumeration indicating if the purchase is a re-order. | [optional] 
+**shipping_address_indicator** | **str** | Enumeration indicating what kind of shipping is used. | [optional] 
 **recurring_expiry** | **datetime** | &#x60;Required&#x60; in case of initial &#x60;Recurring&#x60; payment. The date past which no further payments should be accepted in the recurrence cycle, required for initial Recurring payments, in UTC. | [optional] 
 **recurring_frequency** | **int** | &#x60;Required&#x60; in case of initial &#x60;Recurring&#x60; payment. Minimum number of days between subsequent payments for initial Recurring payments. | [optional] 
 **purchase_type** | [**PurchaseType**](PurchaseType.md) | The type of purchase. | [optional] 

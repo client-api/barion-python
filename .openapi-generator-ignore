@@ -1,2 +1,5 @@
 .gitignore
-.github/workflows/python.yml
+.github/workflows/publish.yaml
+.github/dependabot.yml
+clientapi_barion/barion.py
+example/**

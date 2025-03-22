@@ -9,7 +9,7 @@ Name | Type | Description | Notes
 **pos_transaction_id** | **str** | The unique identifier of the transaction at the shop that initiated the payment. | [optional] 
 **total** | **float** | The amount that has been refunded from the given transaction. | [optional] 
 **comment** | **str** | The comment associated with the refund. | [optional] 
-**status** | [**TransactionStatus**](TransactionStatus.md) | The status of the transaction. | [optional] 
+**status** | **str** |  | [optional] 
 
 ## Example
 

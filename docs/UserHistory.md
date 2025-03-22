@@ -6,16 +6,16 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **id** | **str** | The identifier of the history item. | [optional] 
-**type** | [**HistoryItemType**](HistoryItemType.md) | The type of the history item. | [optional] 
+**type** | **str** |  | [optional] 
 **happened_at_utc** | **datetime** | The exact time when the item happened. | [optional] 
 **concurrency_order** | **int** | The order of the transaction when more than one transaction happened at the same time. When only one transaction happened at a given timestamp, this value can be ignored. | [optional] 
 **source_account** | [**UserHistoryParticipant**](UserHistoryParticipant.md) | The user who initiated the transaction or from whom the money originated. | [optional] 
 **target_account** | [**UserHistoryParticipant**](UserHistoryParticipant.md) | The user who will receive the amount of the transaction. | [optional] 
 **amount** | **float** | The amount of the transaction. | [optional] 
-**currency** | [**Currency**](Currency.md) | The 3-character ISO 4217 currency code of the payment. | [optional] 
+**currency** | **str** | The currency of the payment. Must be supplied in ISO 4217 format. This affects all transactions included in the payment; it is not possible to define multiple transactions in different currencies. | [optional] 
 **description** | **str** | Description of the transaction. | [optional] 
 **is_in_progress** | **bool** | This flag indicates that the transaction is not in the final state. | [optional] 
-**balance_change_type** | [**BalanceChangeType**](BalanceChangeType.md) | Indicates the direction of change regarding the account&#39;s available balance. | [optional] 
+**balance_change_type** | **str** |  | [optional] 
 
 ## Example
 

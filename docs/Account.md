@@ -7,7 +7,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **account_id** | **str** | The unique identifier of the account. | [optional] 
 **balance** | [**Balance**](Balance.md) | The current balance of the account. | [optional] 
-**currency** | [**Currency**](Currency.md) | The currency of the account in 3-letter ISO country code format. | [optional] 
+**currency** | **str** | The currency of the payment. Must be supplied in ISO 4217 format. This affects all transactions included in the payment; it is not possible to define multiple transactions in different currencies. | [optional] 
 **account_info** | [**AccountInfo**](AccountInfo.md) | Information about how to topup the account. | [optional] 
 
 ## Example
